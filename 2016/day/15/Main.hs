@@ -1,6 +1,9 @@
 {-# LANGUAGE ViewPatterns #-}
 import Control.Monad
 import Text.Printf
+import Data.Maybe
+-- import ChineseRemainder
+import CRT
 
 --- Day 15: Timing is Everything ---
 
@@ -34,3 +37,25 @@ input2 = "Disc #X has 11 positions; at time=0, it is at position 0."
 main2 = readFile "input.txt" >>= print . solution . (++ [parseLine input2]) . parse
 
 main = main1 >> main2
+
+-- While easy to solve using brute force, a more beautiful way
+-- is to use the chinese remainder theorem. Luckily, I found some
+-- excellent code for solving CRT online, here:
+--
+--   http://rosettacode.org/wiki/Chinese_remainder_theorem#Haskell
+--
+-- and (honorable mention), here:
+--
+--   https://gist.github.com/kgadek/5503271
+parse3 = map parseLine3 . lines
+
+parseLine3 :: String -> (Integer, Integer)
+parseLine3 (words -> ["Disc",disc,"has",read -> n,"positions;","at","time=0,","it","is","at","position",break (== '.') -> (read -> p, ".")]) = (p, n)
+
+main3 = do
+    input <- readFile "input.txt"
+    let (residuals, modulii) = unzip . parse3 $ input
+        residuals' = zipWith (+) residuals [1..]  -- Add the time steps
+        Just n = chineseRemainder residuals' modulii
+        solution = abs (n - product modulii)
+    print solution
