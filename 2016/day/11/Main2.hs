@@ -5,6 +5,9 @@ import Data.List
 import Data.Set (Set)
 import qualified Data.Set as Set
 
+-- type Building = Array Int Floor
+-- type Floor = [Item]
+
 floors = ["first", "second", "third", "fourth"] `zip` [1..4]
 
 -- floor (flip findIndex floors . (==) -> Just n) = succ n
@@ -33,17 +36,17 @@ valid s =
   where
     validFloor xs = and [{- No RTGs -} null z || {- It's own RTG is on the same floor -} or z | Microchip x <- xs, let z = [x == y | RTG y <- xs]]
 
-parse (words -> ("The":nth:"floor":"contains":xs)) = map (\item -> (Main.floor nth, item)) (items xs)
+parse (words -> ("The":(Main.floor -> nth):"floor":"contains":(items -> xs))) = map (\item -> (nth, item)) xs
 
 items [] = []
-items ["nothing", "relevant."] = []
+items ["nothing","relevant."] = []
 items ("and":xs) = items xs
-items ("a":stuff:"microchip":xs) = let (stuff', "-compatible") = break (== '-') stuff in Microchip stuff' : items xs
-items ("a":stuff:"microchip,":xs) = let (stuff', "-compatible") = break (== '-') stuff in Microchip stuff' : items xs
-items ("a":stuff:"microchip.":[]) = let (stuff', "-compatible") = break (== '-') stuff in [Microchip stuff']
+items ("a":(break (== '-') -> (stuff, "-compatible")):"microchip":xs) = Microchip stuff : items xs
+items ("a":(break (== '-') -> (stuff, "-compatible")):"microchip,":xs) = Microchip stuff : items xs
+items ["a",(break (== '-') -> (stuff, "-compatible")),"microchip."] = [Microchip stuff]
 items ("a":stuff:"generator":xs) = RTG stuff : items xs
 items ("a":stuff:"generator,":xs) = RTG stuff : items xs
-items ("a":stuff:"generator.":[]) = [RTG stuff]
+items ["a",stuff,"generator."] = [RTG stuff]
 
 search1 :: Elevator -> (Elevator, Int)
 search1 elevator = search' [(elevator, 0)] Set.empty
@@ -73,6 +76,7 @@ search1 elevator = search' [(elevator, 0)] Set.empty
                 }
 
         heuristic = id -- sortOn (negate . sum . map fst . _items . fst)
+
 
 main = readFile "input.txt" >>= print . search1 . elevator . lines
 -- main = print $ search1 testElevator
