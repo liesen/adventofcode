@@ -11,11 +11,11 @@ parse s = read ("[" ++ s ++ "]") :: [Int]
 
 step :: (Int, Int, Array Int Int) -> Int -> (Int, Int, Array Int Int)
 step (pos, skipSize, xs) len =
-    let is = map (`mod` (n + 1)) [pos..pos + len - 1]
+    let is = map (`mod` n) [pos..pos + len - 1]
         as = map (xs !) (reverse is)
-    in ((pos + len + skipSize) `mod` length xs, skipSize + 1, xs // (is `zip` as))
+    in ((pos + len + skipSize) `mod` n, skipSize + 1, xs // (is `zip` as))
   where
-    (0, n) = bounds xs
+    n = length xs
 
 denseHash sparseHash = map (foldl1 xor) (chunksOf 16 sparseHash)
   where
