@@ -18,7 +18,7 @@ parseTree = do
     sep = char ' '
 
 check2 (Node xs []) = sum xs
-check2 (Node xs ys)  = sum $ map (maybe 0 id . flip lookup (zip [1..] (map check2 ys))) xs
+check2 (Node xs ys) = sum $ map (maybe 0 id . flip lookup (zip [1..] (map check2 ys))) xs
 
 main = do
     input <- readFile "input.txt"
