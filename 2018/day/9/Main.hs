@@ -1,8 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
-import Control.Arrow ((***))
 import Data.Char (isDigit)
-import Data.Function (on)
-import Data.List
+import qualified Data.IntMap as Map
 import Data.Sequence
 import Text.ParserCombinators.ReadP
 
@@ -13,6 +11,10 @@ rotatel n (viewl -> a :< as) = rotatel (n - 1) (as |> a)
 rotater 0 as                 = as
 rotater n (viewr -> as :> a) = rotater (n - 1) (a <| as)
 
+-- Play the Elves favourite marble game
+marble :: Int  -- Number of players
+       -> Int  -- Value of last marble
+       -> [(Int, Int)]  -- List of all points received as (player, points)
 marble n m = go (cycle [1..n]) [1..m] (singleton 0)
   where
     go _      []     xs = []
@@ -24,7 +26,8 @@ marble n m = go (cycle [1..n]) [1..m] (singleton 0)
             let (x :< xs') = viewl $ rotatel 1 xs
             in go ps ms ((m <| xs') |> x)
 
-score = map ((head *** sum) . unzip) . groupBy ((==) `on` fst) . Data.List.sort
+-- Sum each players' score
+score = Map.assocs . Map.fromListWith (+)
 
 highscore = maximum . map snd . score
 
