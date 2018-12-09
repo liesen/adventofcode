@@ -37,7 +37,6 @@ parse = do
     m <- parseNumber
     _ <- string " points"
     return (p, m)
-  where
 
 parseNumber = read <$> many1 (satisfy isDigit)
 
