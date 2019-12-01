@@ -1,0 +1,26 @@
+| Day | Part 1 | Part 2 |
+| --- | --- | --- |
+|  1  | &check; | &check; |
+|  2  | &ndash; | &ndash; |
+|  3  | &ndash; | &ndash; |
+|  4  | &ndash; | &ndash; |
+|  5  | &ndash; | &ndash; |
+|  6  | &ndash; | &ndash; |
+|  7  | &ndash; | &ndash; |
+|  8  | &ndash; | &ndash; |
+|  9  | &ndash; | &ndash; |
+|  10  | &ndash; | &ndash; |
+|  11  | &ndash; | &ndash; |
+|  12  | &ndash; | &ndash; |
+|  13  | &ndash; | &ndash; |
+|  14  | &ndash; | &ndash; |
+|  15  | &ndash; | &ndash; |
+|  16  | &ndash; | &ndash; |
+|  17  | &ndash; | &ndash; |
+|  18  | &ndash; | &ndash; |
+|  19  | &ndash; | &ndash; |
+|  20  | &ndash; | &ndash; |
+|  21  | &ndash; | &ndash; |
+|  22  | &ndash; | &ndash; |
+|  23  | &ndash; | &ndash; |
+|  24  | &ndash; | &ndash; |
