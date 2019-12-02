@@ -1,7 +1,7 @@
 | Day | Part 1 | Part 2 |
 | --- | --- | --- |
 |  1  | &check; | &check; |
-|  2  | &ndash; | &ndash; |
+|  2  | &check; | &check; |
 |  3  | &ndash; | &ndash; |
 |  4  | &ndash; | &ndash; |
 |  5  | &ndash; | &ndash; |
