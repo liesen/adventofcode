@@ -88,8 +88,8 @@ main = do
     let (as, bs) = parse input
         ixs = intersections (segments0 as) (segments0 bs)
         ans1 = minimum (map dist0 ixs)
-    print ans1
+    print ans1  -- 375
 
     -- Part 2
     let ans2 = getSum $ minimum (map (\ix -> (steps0 ix as) <> (steps0 ix bs)) ixs)
-    print ans2
+    print ans2  -- 14746
