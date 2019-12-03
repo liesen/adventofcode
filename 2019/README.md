@@ -2,7 +2,7 @@
 | --- | --- | --- |
 |  1  | &check; | &check; |
 |  2  | &check; | &check; |
-|  3  | &ndash; | &ndash; |
+|  3  | &check; | &check; |
 |  4  | &ndash; | &ndash; |
 |  5  | &ndash; | &ndash; |
 |  6  | &ndash; | &ndash; |
