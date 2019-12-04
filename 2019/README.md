@@ -1,9 +1,9 @@
 | Day | Part 1 | Part 2 |
 | --- | --- | --- |
-|  1  | &check; | &check; |
-|  2  | &check; | &check; |
-|  3  | &check; | &check; |
-|  4  | &check; | &check; |
+|  1  | &#x2605; | &#x2605; |
+|  2  | &#x2605; | &#x2605; |
+|  3  | &#x2605; | &#x2605; |
+|  4  | &#x2605; | &#x2605; |
 |  5  | &ndash; | &ndash; |
 |  6  | &ndash; | &ndash; |
 |  7  | &ndash; | &ndash; |
