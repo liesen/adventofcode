@@ -1,5 +1,5 @@
 from collections import deque, namedtuple
-from itertools import product
+from itertools import permutations
 
 with open('input.txt') as fp:
     prog = [int(i) for line in fp for i in line.split(',')]
@@ -72,28 +72,16 @@ def run(prog, phase_settings):
     return output_signal
 
 
+# Part 1
 max_thruster_signal = 0
 
-for a in range(5):
-    for b in range(5):
-        if a == b:
-            continue
+for phases in permutations(range(5)):
+    thruster_signal = run(prog, phases)
 
-        for c in range(5):
-            if a == c or b == c:
-                continue
-        
-            for d in range(5):
-                if a == d or b == d or c == d:
-                    continue
-                
-                for e in range(5):
-                    if a == e or b == e or c == e or d == e:
-                        continue
-
-                    thruster_signal = run(prog, [a, b, c, d, e])
-
-                    if thruster_signal > max_thruster_signal:
-                        max_thruster_signal = thruster_signal
+    if thruster_signal > max_thruster_signal:
+        max_thruster_signal = thruster_signal
 
 print(max_thruster_signal)
+
+# Part 2
+prog = [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5]
