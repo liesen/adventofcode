@@ -3,6 +3,7 @@ from intcode import Intcode
 with open('input.txt') as fp:
     prog = [int(i) for line in fp for i in line.split(',')]
 
+# Tests
 p = Intcode([109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99])
 p.run()
 assert p.halt
@@ -18,7 +19,14 @@ p.run()
 assert p.halt
 assert p.outputs.pop() == p.prog[1]
 
+# Part 1
 p = Intcode(prog)
 p.run([1])
 assert p.halt
-print(p.outputs)
+print(p.outputs.pop())
+
+# Part 2
+p = Intcode(prog)
+p.run([2])
+assert p.halt
+print(p.outputs.pop())
