@@ -1,7 +1,6 @@
 from collections import deque
 import curses
 from intcode import Intcode
-from save import save
 
 with open('input.txt') as fp:
     prog = Intcode([int(x) for ln in fp for x in ln.split(',')])
@@ -21,7 +20,9 @@ def main(screen):
     screen.refresh()
     score = 0
 
-    inputs = deque(save)
+    paddle_x = 0
+    ball_x = 0
+
     game_inputs = deque()
 
     while not prog.halt:
@@ -33,6 +34,12 @@ def main(screen):
             if x == -1 and y == 0:
                 score = z
             else:
+                if z == 3:
+                    paddle_x = x
+
+                if z == 4:
+                    ball_x = x
+                
                 screen.addch(y, x, tilemap[z])
 
         screen.addstr(smaxrow + 1, 0, f'SCORE: {score}')
@@ -42,35 +49,16 @@ def main(screen):
         if prog.need_input:
             prog.inputs.clear()
 
-            if len(inputs) > 0:  # exhaust saved game
-                x = inputs.popleft()
-            else:
-                x = screen.getch()
-                save.append(x)
-
-            if x == curses.KEY_ENTER:
-                return
-            elif x == curses.KEY_DOWN:
-                prog.inputs.append(0)
-                game_inputs.append(0)
-            elif x == curses.KEY_LEFT:
-                prog.inputs.append(-1)
-                game_inputs.append(-1)
-            elif x == curses.KEY_RIGHT:
+            # Match paddle position with the ball
+            if paddle_x < ball_x:
                 prog.inputs.append(1)
-                game_inputs.append(1)
+            elif paddle_x > ball_x:
+                prog.inputs.append(-1)
+            else:
+                prog.inputs.append(0)
 
     assert prog.halt
-
-    screen.addstr(smaxrow + 2, 0, f'SAVE? ')
     screen.refresh()
-
-    if screen.getch(smaxrow + 2, len('SAVE? ')) == ord('y'):
-        with open('save.py', 'w') as fp:
-            fp.write('''from collections import deque
-
-save = deque(''')
-            fp.write(str(list(save)))
-            fp.write(')')
+    screen.getch()
     
 curses.wrapper(main)
