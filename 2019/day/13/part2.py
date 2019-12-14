@@ -69,7 +69,7 @@ def main(screen):
         with open('save.py', 'w') as fp:
             fp.write('''from collections import deque
 
-    save = deque(''')
+save = deque(''')
             fp.write(str(list(save)))
             fp.write(')')
     
