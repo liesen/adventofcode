@@ -58,7 +58,9 @@ def main(screen):
                 prog.inputs.append(0)
 
     assert prog.halt
+    screen.addstr(smaxrow + 2, 0, 'Press any key to exit...')
     screen.refresh()
     screen.getch()
+    
     
 curses.wrapper(main)
