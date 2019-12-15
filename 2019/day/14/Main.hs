@@ -61,6 +61,7 @@ test1 = test "testinput1.txt"
 test2 = test "testinput2.txt"
 test3 = test "testinput3.txt"
 test4 = test "testinput4.txt"
+test5 = test "testinput5.txt"
 
 search f 0        ans = ans
 search f stepSize guess =
