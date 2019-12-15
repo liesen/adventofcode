@@ -43,12 +43,14 @@ def explore(pos):
             prog.inputs.append(REV[cmd])
             prog.run()
         elif status == 2:
+            # There might be a faster way from Z to O which
+            # is not found through this DFS, so keep exploring!
             explore(new_pos)
             prog.inputs.append(REV[cmd])
             prog.run()
         
 
-# Explore the space
+# Explore the space using DFS
 explore(np.array([0, 0]))
 
 Z = 0, 0  # Initial pos
@@ -73,7 +75,7 @@ tilemap = {
 
 # Print state
 # print('\n'.join(''.join(tilemap[state.get((x, y), -1)] for x in range(mincol, maxcol + 1))
-#                  for y in range(minrow, maxrow + 1)))
+#                 for y in range(minrow, maxrow + 1)))
 
 # BFS from starting position
 q = deque([])
