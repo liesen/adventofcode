@@ -1,178 +1,113 @@
 from intcode import Intcode
-import curses
-import numpy as np
 from collections import deque
+import numpy as np
 
 with open('input.txt') as fp:
     prog = Intcode([int(x) for ln in fp for x in ln.split(',')])
 
-D = {
+# Movement commands
+DIR = {
     1: np.array([0, -1]),
     2: np.array([0, 1]),
     3: np.array([-1, 0]),
     4: np.array([1, 0])
 }
 
-R = {1: 2, 2: 1, 3: 4, 4: 3}
-minrow = 0
-mincol = 0
-maxrow = 0
-maxcol = 0
+# Reverse commands
+REV = {1: 2, 2: 1, 3: 4, 4: 3}
 
-def search(prog, pos, field, screen):
-    global minrow, mincol, maxrow, maxcol
+state = {}
 
+def explore(pos):
+    global prog, state
     x, y = pos
 
-    if not screen:
-        print(f'> {x},{y}, HALT: {prog.halt}, INPUT: {prog.need_input}, VISITED: {(x, y) in field}, #VISITED: {len(field)}')
-
     if prog.halt:
-        return prog
+        return
 
-    # if (x, y) in field:
-    #     return
+    for cmd, d in DIR.items():
+        x1, y1 = new_pos = pos + d
 
-    # if x < 0 or y < 0:
-    #    return
-
-    # print(f'{x},{y}')
-
-    if screen:
-        screen.addstr(0, 0, f'{x},{y}')
-        screen.addch(y + 1, x, 'D')
-        screen.refresh()
-
-    minrow = min(minrow, y)
-    maxrow = max(maxrow, y)
-    mincol = min(mincol, x)
-    maxcol = max(maxcol, x)
-
-    # key = screen.getch()
-
-    #    if key == curses.KEY_UP:
-    #        command = 1
-    #    elif key == curses.KEY_DOWN:
-    #        command = 2
-    #    elif key == curses.KEY_LEFT:
-    #        command = 3
-    #    elif key == curses.KEY_RIGHT:
-    #        command = 4
-
-    for command in range(1, 5):
-        if screen: screen.getch()
-        d = D[command]
-        x1, y1 = pos1 = pos + d
-
-        if (x1, y1) in field:
+        if (x1, y1) in state:
             continue
 
-        prog.inputs.append(command)
+        prog.inputs.append(cmd)
         prog.run()
         status = prog.outputs.pop()
-        field[(x1, y1)] = status
-        # print('new pos', pos1, 'status', status)
+        state[(x1, y1)] = status
 
         if status == 0:
-            if screen: screen.addch(y1 + 1, x1, '#')
-            if not screen: print(f'{x1},{y1}: #')
+            pass
         elif status == 1:
-            if screen: screen.addch(y1 + 1, x1, '.')
-            if not screen: print(f'{x1},{y1}: .')
-            # print('RECURSE MF!')
-            search(prog, pos1, field, screen)
-            # input('BACK')
-            prog.inputs.append(R[command])
+            explore(new_pos)
+            prog.inputs.append(REV[cmd])
             prog.run()
         elif status == 2:
-            if screen: screen.addch(y1 + 1, x1, 'X')
-            if not screen: print(f'{x1},{y1}: X')
-            search(prog, pos1, field, screen)
-            prog.inputs.append(R[command])
+            explore(new_pos)
+            prog.inputs.append(REV[cmd])
             prog.run()
         
-        if screen: screen.refresh()
 
+# Explore the space
+explore(np.array([0, 0]))
 
+Z = 0, 0  # Initial pos
+O = None  # Oxygen tank pos
+mincol, minrow, maxcol, maxrow = 0, 0, 0, 0
 
-def main(screen):
-    global prog
-    print(screen)
-    prog.run()
-    print(prog.outputs)
-    screen.refresh()
-    
-    field = {}
-    search(prog, np.array([0, 0]), field, screen)
-    screen.getkey()
+for (x, y), z in state.items():
+    mincol = min(mincol, x)
+    maxcol = max(maxcol, x)
+    minrow = min(minrow, x)
+    maxrow = max(maxrow, x)
 
-
-# curses.wrapper(main)
-
-field = {}
-search(prog, np.array([0, 0]), field, None)
-print(field)
-print((mincol, minrow), (maxcol, maxrow))
+    if z == 2:
+        O = (x, y)
 
 tilemap = {
-    -1: ' ',
-    0: chr(0x2588),
-    1: '.',
-    2: 'X'
+    -1: ' ',  # unexplored
+    0: '#',  # wall
+    1: '.',  # not wall
+    2: 'O'  # oxygen tank
 }
 
-O, = [p for p, z in field.items() if z == 2]
+# Print state
+# print('\n'.join(''.join(tilemap[state.get((x, y), -1)] for x in range(mincol, maxcol + 1))
+#                  for y in range(minrow, maxrow + 1)))
 
-print('\n'.join([''.join([tilemap[field.get((x, y), -1)] for x in range(mincol, maxcol + 1)]) for y in range(minrow, maxrow + 1)]))
-
-def neighbors(pos, field):
-    for d in D.values():
-        x1, y1 = pos + d
-
-        if field.get((x1, y1), -1) > 0:
-            yield (x1, y1)
-
-# BFS = shortest
+# BFS from starting position
 q = deque([])
-q.append(((0, 0), deque([])))
-visited = set()
-
+q.append((Z, 0))
 sp = {}
 
 while q:
-    pos, path = q.popleft()
-    x, y = pos
-    sp[pos] = len(path)
+    pos, path_len = q.popleft()
 
-    if pos in visited:
+    if tuple(pos) in sp:
         continue
 
-    visited.add(pos)
+    sp[tuple(pos)] = path_len
 
-    for n in neighbors(pos, field):
-        q.append((n, path + deque([pos])))
+    for n in [pos + d for d in DIR.values() if state.get(tuple(pos + d)) > 0]:
+        q.append((n, path_len + 1))
 
-print(O)
 print(sp[O])
-print(sp)
-print(max(n for pos, n in sp.items()))
 
-
+# Part 2
+# Run BFS from oxygen tank
 q = deque([])
 q.append((O, 0))
 sp = {}
 
 while q:
-    pos, m = q.popleft()
-    x, y = pos
+    pos, path_len = q.popleft()
 
-    if pos in sp:
+    if tuple(pos) in sp:
         continue
 
-    sp[pos] = m
+    sp[tuple(pos)] = path_len
 
-    for n in neighbors(pos, field):
-        q.append((n, m + 1))
+    for n in [pos + d for d in DIR.values() if state.get(tuple(pos + d)) > 0]:
+        q.append((n, path_len + 1))
 
-print(sp)
 print(max(n for pos, n in sp.items()))
