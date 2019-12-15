@@ -149,12 +149,30 @@ while q:
 
     visited.add(pos)
 
-    if field.get((x, y), -1) == 2:
-        print(path)
-        print(len(path))
-        break
-
     for n in neighbors(pos, field):
         q.append((n, path + deque([pos])))
 
 print(O)
+print(sp[O])
+print(sp)
+print(max(n for pos, n in sp.items()))
+
+
+q = deque([])
+q.append((O, 0))
+sp = {}
+
+while q:
+    pos, m = q.popleft()
+    x, y = pos
+
+    if pos in sp:
+        continue
+
+    sp[pos] = m
+
+    for n in neighbors(pos, field):
+        q.append((n, m + 1))
+
+print(sp)
+print(max(n for pos, n in sp.items()))
