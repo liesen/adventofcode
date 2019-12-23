@@ -20,9 +20,7 @@ for i in range(50):
                   prog.outputs.popleft()])
 
 # Part 1
-done = False
-
-while not done and q:
+while q and not q[0][0] == 255:
     cmd = q.popleft()
     dst = cmd[0]
     prog = nics[dst]
@@ -30,13 +28,10 @@ while not done and q:
     prog.run(payload)
 
     while prog.outputs:
-        if prog.outputs[0] == 255:
-            done = True
-            ans = prog.outputs[2]
-            break
-
         q.append([prog.outputs.popleft(),
                   prog.outputs.popleft(),
                   prog.outputs.popleft()])
 
-print(ans)
+print(q.popleft()[2])
+
+# Part 2
