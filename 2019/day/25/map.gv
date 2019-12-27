@@ -1,0 +1,107 @@
+strict digraph "" {
+	node [label="\N"];
+	"Hull Breach"	 [label=<Hull Breach<br/>You got in through a hole in the floor here. To keep your ship from also freezing, the hole has been sealed.>,
+		shape=ellipse];
+	Engineering	 [label=<Engineering<br/>You see a whiteboard with plans for Springdroid v2.>,
+		shape=ellipse];
+	"Hull Breach" -> Engineering	 [label=east];
+	"Science Lab"	 [label=<Science Lab<br/>You see evidence here of prototype polymer design work.>,
+		shape=ellipse];
+	"Hull Breach" -> "Science Lab"	 [label=south];
+	Hallway	 [label=<Hallway<br/>This area has been optimized for something; you're just not quite sure what.>,
+		shape=ellipse];
+	"Hull Breach" -> Hallway	 [label=west];
+	Engineering -> "Hull Breach"	 [label=west];
+	mug	 [shape=rect];
+	Engineering -> mug;
+	"Sick Bay"	 [label=<Sick Bay<br/>Supports both Red-Nosed Reindeer medicine and regular reindeer medicine.>,
+		shape=ellipse];
+	Engineering -> "Sick Bay"	 [label=east];
+	"Sick Bay" -> Engineering	 [label=west];
+	"escape pod"	 [shape=octagon];
+	"Sick Bay" -> "escape pod";
+	"Crew Quarters"	 [label=<Crew Quarters<br/>The beds are all too small for you.>,
+		shape=ellipse];
+	"Sick Bay" -> "Crew Quarters"	 [label=south];
+	"Crew Quarters" -> "Sick Bay"	 [label=north];
+	"Hot Chocolate Fountain"	 [label=<Hot Chocolate Fountain<br/>Somehow, it's still working.>,
+		shape=ellipse];
+	"Crew Quarters" -> "Hot Chocolate Fountain"	 [label=east];
+	"Warp Drive Maintenance"	 [label=<Warp Drive Maintenance<br/>It appears to be working normally.>,
+		shape=ellipse];
+	"Crew Quarters" -> "Warp Drive Maintenance"	 [label=west];
+	"Hot Chocolate Fountain" -> "Crew Quarters"	 [label=west];
+	photons	 [shape=octagon];
+	"Hot Chocolate Fountain" -> photons;
+	Stables	 [label=<Stables<br/>Reindeer-sized. They're all empty.>,
+		shape=ellipse];
+	"Hot Chocolate Fountain" -> Stables	 [label=north];
+	Corridor	 [label=<Corridor<br/>The metal walls and the metal floor are slightly different colors. Or are they?>,
+		shape=ellipse];
+	"Hot Chocolate Fountain" -> Corridor	 [label=south];
+	Stables -> "Hot Chocolate Fountain"	 [label=south];
+	"molten lava"	 [shape=octagon];
+	Stables -> "molten lava";
+	Kitchen	 [label=<Kitchen<br/>Everything's freeze-dried.>,
+		shape=ellipse];
+	Stables -> Kitchen	 [label=west];
+	Kitchen -> Stables	 [label=east];
+	Corridor -> "Hot Chocolate Fountain"	 [label=north];
+	"easter egg"	 [shape=rect];
+	Corridor -> "easter egg";
+	"Warp Drive Maintenance" -> "Crew Quarters"	 [label=east];
+	Observatory	 [label=<Observatory<br/>There are a few telescopes; they're all bolted down, though.>,
+		shape=ellipse];
+	"Warp Drive Maintenance" -> Observatory	 [label=south];
+	Observatory -> "Warp Drive Maintenance"	 [label=north];
+	"infinite loop"	 [shape=octagon];
+	Observatory -> "infinite loop";
+	"Gift Wrapping Center"	 [label=<Gift Wrapping Center<br/>How else do you wrap presents on the go?>,
+		shape=ellipse];
+	Observatory -> "Gift Wrapping Center"	 [label=west];
+	"Gift Wrapping Center" -> Observatory	 [label=east];
+	shell	 [shape=rect];
+	"Gift Wrapping Center" -> shell;
+	"Security Checkpoint"	 [label=<Security Checkpoint<br/>In the next room, a pressure-sensitive floor will verify your identity.>,
+		shape=ellipse];
+	"Gift Wrapping Center" -> "Security Checkpoint"	 [label=south];
+	"Security Checkpoint" -> "Gift Wrapping Center"	 [label=north];
+	"Pressure-Sensitive Floor"	 [label=<Pressure-Sensitive Floor<br/>Analyzing...>,
+		shape=ellipse];
+	"Security Checkpoint" -> "Pressure-Sensitive Floor"	 [label=south];
+	"Pressure-Sensitive Floor" -> "Gift Wrapping Center"	 [label=north];
+	"Science Lab" -> "Hull Breach"	 [label=north];
+	"weather machine"	 [shape=rect];
+	"Science Lab" -> "weather machine";
+	Hallway -> "Hull Breach"	 [label=east];
+	Navigation	 [label=<Navigation<br/>Status: Stranded. Please supply measurements from fifty stars to recalibrate.>,
+		shape=ellipse];
+	Hallway -> Navigation	 [label=south];
+	Holodeck	 [label=<Holodeck<br/>Someone seems to have left it on the Giant Grid setting.>,
+		shape=ellipse];
+	Hallway -> Holodeck	 [label=west];
+	Navigation -> Hallway	 [label=north];
+	"festive hat"	 [shape=rect];
+	Navigation -> "festive hat";
+	Arcade	 [label=<Arcade<br/>None of the cabinets seem to have power.>,
+		shape=ellipse];
+	Navigation -> Arcade	 [label=east];
+	Storage	 [label=<Storage<br/>The boxes just contain more boxes.  Recursively.>,
+		shape=ellipse];
+	Navigation -> Storage	 [label=south];
+	Arcade -> Navigation	 [label=west];
+	"whirled peas"	 [shape=rect];
+	Arcade -> "whirled peas";
+	Storage -> Navigation	 [label=north];
+	sand	 [shape=rect];
+	Storage -> sand;
+	Holodeck -> Hallway	 [label=east];
+	"giant electromagnet"	 [shape=octagon];
+	Holodeck -> "giant electromagnet";
+	Passages	 [label=<Passages<br/>They're a little twisty and starting to look all alike.>,
+		shape=ellipse];
+	Holodeck -> Passages	 [label=north];
+	Passages -> Holodeck	 [label=south];
+	"space heater"	 [shape=rect];
+	Passages -> "space heater";
+}
