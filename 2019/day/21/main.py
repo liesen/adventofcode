@@ -8,8 +8,7 @@ with open('input.txt') as fp:
 # Idea: the jump is four tiles wide, so if there's
 # ground four tiles away (D) and not ground anywhere
 # in between (~A | ~B | ~C), then jump
-scriptcode = '''
-NOT A J
+scriptcode = '''NOT A J
 NOT B T
 OR T J
 NOT C T
@@ -18,11 +17,7 @@ AND D J
 WALK
 '''
 
-def compile(sc):
-    return list(chain(*[list(map(ord, s)) + [10] for s in sc.splitlines() if s]))
-
-prog.run()
-prog.run(compile(scriptcode))
+prog.runs(scriptcode)
 
 for z in prog.outputs:
     if z > 256:

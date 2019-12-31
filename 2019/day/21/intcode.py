@@ -22,6 +22,9 @@ class Intcode:
         while not (self.halt or self.need_input):
             self.step()
 
+    def runs(self, s):
+        self.run([ord(x) for x in s])
+
     def read(self, addr):
         if addr < 0:
             raise Exception("invalid memory access to negative address")
