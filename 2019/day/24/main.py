@@ -51,37 +51,39 @@ def adjacents(bug):
     d, y, x = bug
 
     for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-        if -2 <= dy + y <= 2 and -2 <= dx + x <= 2:
-            if y == -1 and x == 0 and dy == 1 and dx == 0:
-                for x1 in range(-2, 3):
-                    yield (d + 1, -2, x1)
-            elif y == 1 and x == 0 and dy == -1 and dx == 0:
-                for x1 in range(-2, 3):
-                    yield (d + 1, 2, x1)
-            elif y == 0 and x == -1 and dy == 0 and dx == 1:
-                for y1 in range(-2, 3):
-                    yield (d + 1, y1, -2)
-            elif y == 0 and x == 1 and dy == 0 and dx == -1:
-                for y1 in range(-2, 3):
-                    yield (d + 1, y1, 2)
-            else:
-                yield (d, y + dy, x + dx)
+        if (-2 <= dy + y <= 2 and -2 <= dx + x <= 2
+            and not (y + dy == 0 and x + dx == 0)):
+            yield (d, y + dy, x + dx)
 
-    # Top row
+    # Tiles from the grid that contains this one 
     if y == 2:
         yield (d - 1, 1, 0)
 
-    # Bottom row
     if y == -2:
         yield (d - 1, -1, 0)
 
-    # Left column
     if x == -2:
         yield (d - 1, 0, -1)
 
-    # Right column
     if x == 2:
         yield (d - 1, 0, 1)
+
+    # Get tiles from the next recursive grid
+    if y == -1 and x == 0:
+        for x1 in range(-2, 3):
+            yield (d + 1, -2, x1)
+    
+    if y == 1 and x == 0:
+        for x1 in range(-2, 3):
+            yield (d + 1, 2, x1)
+    
+    if y == 0 and x == -1:
+        for y1 in range(-2, 3):
+            yield (d + 1, y1, -2)
+    
+    if y == 0 and x == 1:
+        for y1 in range(-2, 3):
+            yield (d + 1, y1, 2)
 
 def step(grid):
     density = Counter(a for c in grid for a in adjacents(c))
