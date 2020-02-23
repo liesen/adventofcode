@@ -1,4 +1,5 @@
 {-# LANGUAGE ViewPatterns, RecordWildCards #-}
+import Data.List
 
 data Reindeer = Reindeer
     { name :: String
@@ -35,9 +36,31 @@ adjust Reindeer{..} t (t', dist, Rested) = dist + speed * (t - t')
 race :: Time -> Reindeer -> Distance
 race t reindeer = adjust reindeer t $ last $ takeWhile (\(t', _, _) -> t' <= t) $ steps reindeer
 
+ticks = interpolate . steps
+  where
+    interpolate ((t0, dist0, state0):(s@(t1, dist1, state1)):ss) =
+      [(t0 + dt, dist0 + dd, state0) | dt <- [0..t1 - t0 - 1], let dd = dt * ((dist1 - dist0) `div` (t1 - t0))] ++ interpolate (s:ss)
+
+type Points = Int
+
+rewardLeader :: [(Time, Distance, State, Points)] -> [(Time, Distance, State, Points)]
+rewardLeader xs =
+    let maxDist = maximum $ map (\(t, dist, _, _) -> dist) xs
+    in map (\(t, dist, state, points) -> (t, dist, state, points + if dist == maxDist then 1 else 0)) xs
+
 main = do
     input <- readFile "input.txt"
     let reindeers = map parse $ lines input
 
     -- Part 1
     print $ maximum $ map (race 2503) reindeers
+
+    -- Part 2
+    print $ maximum
+          $ map (\(t, d, s, p) -> p)
+          $ map (foldl1 (\(t1, d1, s1, p1) (t2, d2, s2, p2) -> (t2, d2, s2, p1 + p2)))
+          $ transpose
+          $ map rewardLeader
+          $ transpose
+          $ map (map (\(t, dist, state) -> (t, dist, state, 0)))
+          $ map (take 2503 . ticks) reindeers
