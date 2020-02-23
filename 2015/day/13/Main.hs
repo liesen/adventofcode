@@ -26,4 +26,4 @@ main = do
     print $ maximum $ map (arrangementHappiness graph) $ permutations (vertices graph)
 
     -- Part 2
-    print $ maximum $ map (arrangementHappiness graph) $ permutations ("Me" : vertices graph)
+    print $ maximum $ map (arrangementHappiness graph) $ permutations ("yourself" : vertices graph)
