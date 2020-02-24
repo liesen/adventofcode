@@ -39,6 +39,8 @@ step (Grid maxrow maxcol m) = Grid maxrow maxcol $ Map.fromList $ map f $ Map.as
         | otherwise = (pos, 0)
     
     neighborsOn = sum . map (maybe 0 id . (`Map.lookup` m)) . neighbors
+
+broken (Grid maxrow maxcol m) = Grid maxrow maxcol (Map.union (Map.fromList [((0, 0), 1), ((0, maxcol - 1), 1), ((maxrow - 1, 0), 1), ((maxrow - 1, maxcol - 1), 1)]) m)
     
 main = do
     input <- readFile "input.txt"
@@ -46,3 +48,6 @@ main = do
 
     -- Part 1
     print $ sum . Map.elems . unGrid $ iterate step a !! 100
+
+    -- Part 2
+    print $ sum . Map.elems . unGrid $ iterate (broken . step) (broken a) !! 100
