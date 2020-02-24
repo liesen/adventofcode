@@ -44,3 +44,6 @@ main = do
     
     -- Part 1
     print $ maximum $ map score $ bake 100 ingredients
+
+    -- Part 2
+    print $ maximum $ map score $ filter ((== 500) . sum . map (\(n, Ingredient{..}) -> n * calories)) $ bake 100 ingredients
