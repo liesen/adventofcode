@@ -16,21 +16,25 @@ data MinMax
     | MinMax Int Int
   deriving (Show, Eq)
 
+instance Semigroup MinMax where
+    Empty <> x = x
+    x <> Empty = x
+    (Min a) <> (Min b) = MinMax (min a b) (max a b)
+    (Min a) <> (MinMax b c) = MinMax (min a b) (max a c)
+    (MinMax a b) <> (Min c) = MinMax (min a c) (max b c)
+    (MinMax a b) <> (MinMax c d) = MinMax (min a c) (max b d)
+
 instance Monoid MinMax where
     mempty = Empty
-    Empty `mappend` x = x
-    x `mappend` Empty = x
-    (Min a) `mappend` (Min b) = MinMax (min a b) (max a b)
-    (Min a) `mappend` (MinMax b c) = MinMax (min a b) (max a c)
-    (MinMax a b) `mappend` (Min c) = MinMax (min a c) (max b c)
-    (MinMax a b) `mappend` (MinMax c d) = MinMax (min a c) (max b d)
 
 data Bot = Bot MinMax [String]
     deriving (Show)
 
+instance Semigroup Bot where
+  Bot x xs <> Bot y ys = Bot (x <> y) (xs <> ys)
+
 instance Monoid Bot where
     mempty = Bot mempty mempty
-    (Bot x xs) `mappend` (Bot y ys) = Bot (x `mappend` y) (xs `mappend` ys)
 
 data State = State { _bots :: Map Int Bot, _outputs :: Map Int Int }
     deriving (Show)
