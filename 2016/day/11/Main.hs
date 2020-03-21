@@ -6,8 +6,6 @@ import Data.Monoid
 import Data.Function (on)
 import Data.Sequence (Seq(..))
 import qualified Data.Sequence as Seq
-import Data.PQueue.Prio.Min (MinPQueue)
-import qualified Data.PQueue.Prio.Min as PQueue
 
 data Item =
       Microchip String
@@ -22,7 +20,7 @@ floor "third" = 3
 floor "fourth" = 4
 floor "fifth" = 5
 
-parse = Elevator 1 . concatMap parseLine . lines
+parse = Elevator 1 . sort . concatMap parseLine . lines
 
 parseLine (words -> ("The":nth:"floor":"contains":xs)) = map (\item -> (Main.floor nth, item)) (items xs)
 
@@ -67,15 +65,6 @@ step s =
             _items = foldr insert (foldr delete (_items s) items) (map (\(floor, item) -> (f floor, item)) items)
           }
 
-testInput = [
-    "The first floor contains a hydrogen-compatible microchip and a lithium-compatible microchip.",
-    "The second floor contains a hydrogen generator.",
-    "The third floor contains a lithium generator.",
-    "The fourth floor contains nothing relevant."
-  ]
-
-testElevator = parse (unlines testInput)
-
 bfs :: Ord r => (a -> r) -> (a -> [(a, Int)]) -> a -> [(a, Int)]
 bfs rep next start = loop Set.empty (Seq.fromList [(start, 0)])
   where
@@ -88,29 +77,15 @@ bfs rep next start = loop Set.empty (Seq.fromList [(start, 0)])
           seen1 = Set.insert r seen
           q2 = q1 <> Seq.fromList (map (\(x', stepcost) -> (x', cost + stepcost)) (next x))
 
-isSolution s = _elevator s == 4 && all ((== 4) . fst) (_items s)
-
-heuristic Elevator{..} = 4 - _elevator + sum (map (\(f, _) -> 4 - f) _items)
-
-astar :: Ord r => (a -> r) -> (a -> [(a, Int)]) -> (a -> Int) -> a -> [(a, Int)]
-astar rep next heuristic start = go Set.empty (PQueue.singleton 0 (start, 0))
-  where
-    go seen (PQueue.minView -> Nothing) = []
-    go seen (PQueue.minView -> Just ((x, cost), q1))
-      | Set.member r seen = go seen q1
-      | otherwise = (x, cost) : go seen1 q2
-      where
-        r = rep x
-        seen1 = Set.insert r seen
-        q2 = foldr (\(x', stepcost) -> PQueue.insert (cost + stepcost + heuristic x') (x', cost + stepcost)) q1 (next x)
+isSolution Elevator{..} = _elevator == 4 && all ((== 4) . fst) _items
 
 main = do
     input <- readFile "input.txt"
     let facility1 = parse input
 
     -- Part 1
-    -- print $ head . filter (isSolution . fst) $ bfs id step facility1
+    print $ snd . head . filter (isSolution . fst) $ bfs id step facility1
 
-    let facility2 = parse $ input ++ "The first floor contains a elerium generator, a elerium-compatible microchip, a dilithium generator and a dilithium-compatible microchip.\n"
-    print facility2
-    -- print $ head . filter (isSolution . fst) $ astar id step (const 0) facility2
+    -- Part 2
+    let facility2 = parse $ "The first floor contains a elerium generator, a elerium-compatible microchip, a dilithium generator and a dilithium-compatible microchip.\n" ++ input
+    print $ snd . head . filter (isSolution . fst) $ bfs id step facility2
