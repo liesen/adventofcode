@@ -7,12 +7,15 @@ import Data.Function (on)
 import Data.Sequence (Seq(..))
 import qualified Data.Sequence as Seq
 
-data Item =
-      Microchip String
+data Item
+    = Microchip String
     | RTG String
-  deriving (Show, Eq, Ord)
+    deriving (Show, Eq, Ord)
 
-data Elevator = Elevator { _elevator :: Int, _items :: [(Int, Item)] } deriving (Eq, Ord, Show)
+data Elevator = Elevator
+    { _elevator :: Int
+    , _items :: [(Int, Item)]  -- It's important that _elems is sorted
+    } deriving (Eq, Ord, Show)
 
 floor "first" = 1
 floor "second" = 2
@@ -61,8 +64,8 @@ step s =
   where
     -- Move items up or down
     moves f items =
-        s { _elevator = f (_elevator s),
-            _items = foldr insert (foldr delete (_items s) items) (map (\(floor, item) -> (f floor, item)) items)
+        s { _elevator = f (_elevator s)
+          , _items = foldr insert (foldr delete (_items s) items) (map (\(floor, item) -> (f floor, item)) items)
           }
 
 bfs :: Ord r => (a -> r) -> (a -> [(a, Int)]) -> a -> [(a, Int)]
