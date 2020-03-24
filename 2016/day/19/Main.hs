@@ -1,26 +1,24 @@
+import Control.Applicative
+import qualified Data.Map.Strict as Map
+
 --- Day 19: An Elephant Named Joseph ---
+input = 3005290
+
 elves n = zip [1..n] (replicate n 1)
 
-f ((n, x):(m, y):zs) xs = f zs (xs ++ [(n, x + y)])
-f []                 xs = f xs []
-f [z]                [] = z
-f [z]                xs = f (z:xs) []
-
-test = f (elves 5) []
-
--- Looking at the first couple of hundred solutions, it appears that every
--- 2^n - 1 
-
-solution1 =
-    let n = until (\n -> 2^n - 1 > 3005290) (+ 1) 1 - 1
-        m = 3005290 - (2^n - 1)
-    in m * 2 - 1
-
-main1 = print solution1
+play = go 1 . Map.fromList . elves
+  where
+    go i m =
+        let Just (j, v) = Map.lookupGE i m <|> Map.lookupGT 0 m
+            Just (k, w) = Map.lookupGT j m <|> Map.lookupGT 0 m
+        in if j == k
+            then (j, v + w)
+            else go k (Map.delete k (Map.insert j (v + w) m))
 
 --- Part Two ---
+main = do
+    -- Part 1
+    let (i, n) = play input
+    print i
 
-main2 = print ""
-
-
-main = main1 >> main2
+    -- Part 2
