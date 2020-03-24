@@ -1,24 +1,23 @@
-import Control.Applicative
-import qualified Data.Map.Strict as Map
+import qualified Data.Sequence as Seq
+import Data.Sequence (Seq (..))
 
 --- Day 19: An Elephant Named Joseph ---
 input = 3005290
 
-elves n = zip [1..n] (replicate n 1)
-
-play = go 1 . Map.fromList . elves
+play1 n = go (Seq.fromList [1..n])
   where
-    go i m =
-        let Just (j, v) = Map.lookupGE i m <|> Map.lookupGT 0 m
-            Just (k, w) = Map.lookupGT j m <|> Map.lookupGT 0 m
-        in if j == k
-            then (j, v + w)
-            else go k (Map.delete k (Map.insert j (v + w) m))
+    go (x :<| Empty)      = x
+    go (x :<| (y :<| zs)) = go (zs <> Seq.singleton x)
 
---- Part Two ---
+play2 n = go (Seq.fromList [1..n])
+  where
+    go (x :<| Empty) = x
+    go xs            = let (y :<| ys, z :<| zs) = Seq.splitAt (Seq.length xs `div` 2) xs
+                       in go (ys <> zs <> Seq.singleton y)
+
 main = do
     -- Part 1
-    let (i, n) = play input
-    print i
+    print $ play1 input
 
     -- Part 2
+    print $ play2 input
