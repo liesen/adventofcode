@@ -1,117 +1,62 @@
 {-# LANGUAGE ViewPatterns #-}
+import Control.Monad
 import Data.Array
-import Control.Arrow ((&&&))
 import Data.Char
 import Data.List
 import Data.Ord
-import Data.Maybe
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.HashSet (HashSet)
-import qualified Data.HashSet as Set
+import qualified Data.IntSet as IntSet
+import Data.IntSet (IntSet)
+import qualified Data.Set as Set
+import Data.Set (Set)
+import qualified Data.Sequence as Seq
+import Data.Sequence (Seq (..))
 
-parse :: String -> Array (Int, Int) Char
-parse s = listArray ((0, 0), (h - 1, w - 1)) (concat xs)
+parse s = listArray ((0, 0), (numrows - 1, numcols - 1)) (concat rows)
   where
-    xs@(x:_) = lines s
-    w = length x
-    h = length xs
+    rows = lines s
+    numrows = length rows
+    numcols = length (head rows)
 
-test = unlines [
-    "###########",
-    "#0.1.....2#",
-    "#.#######.#",
-    "#4.......3#",
-    "###########"
-  ]
+data State = State
+    { pos :: (Int, Int)
+    , keys :: IntSet
+    , grid :: Array (Int, Int) Char
+    } deriving (Show)
 
-maze :: Array (Int, Int) Char
-maze = listArray ((0, 0), (4, 10)) (concat (lines test))
-
--- BFS to get the shortest distance between x and y
-alldistance :: Array (Int, Int) Char -> (Int, Int) -> [((Int, Int), Int)]
-alldistance maze src = map (minimumBy (comparing snd)) . group . sortBy (comparing fst) . concat $ search' [(src, 0)] Set.empty
+bfs :: Ord r => (a -> r) -> (a -> [(a, Int)]) -> a -> [(a, Int)]
+bfs rep next start = loop Set.empty (Seq.fromList [(start, 0)])
   where
-    inside = inRange (bounds maze)
-    walkable x = maze ! x /= '#'
-    vertex x = isDigit (maze ! x)
-    search' [] _ = [[]]
-    search' ps visited = filter (vertex . fst) ps : search' ps' visited'
-      where
-        unvisited = not . flip Set.member visited
-        ps' = [ ((x', y'), n + 1)
-              | ((x, y), n) <- ps
-              , (dx, dy) <- [(1, 0), (0, 1), (-1, 0), (0, -1)]
-              , let (x', y') = (x + dx, y + dy)
-              , inside (x', y')
-              , walkable (x', y')
-              , unvisited (x', y')
-              ]
-        visited' = visited `Set.union` Set.fromList (map fst ps')
+    loop _    Empty = []
+    loop seen ((x, cost) :<| q1)
+        | Set.member r seen = loop seen q1
+        | otherwise = (x, cost) : loop seen1 q2
+        where
+          r = rep x
+          seen1 = Set.insert r seen
+          q2 = q1 <> Seq.fromList (map (\(x', stepcost) -> (x', cost + stepcost)) (next x))
 
--- BFS to get the shortest distance between x and y
-distance :: Array (Int, Int) Char -> (Int, Int) -> (Int, Int) -> Int
-distance maze src dst = search' [(src, 0)] Set.empty
-  where
-    inside = inRange (bounds maze)
-    walkable x = maze ! x /= '#'
-    search' ps visited
-        | ((_, n):_) <- filter ((== dst) . fst) ps = n
-        | otherwise                                = search' ps' visited'
-      where
-        unvisited = not . flip Set.member visited
-        ps' = [ ((x', y'), n + 1)
-              | ((x, y), n) <- ps
-              , (dx, dy) <- [(1, 0), (0, 1), (-1, 0), (0, -1)]
-              , let (x', y') = (x + dx, y + dy)
-              , inside (x', y')
-              , walkable (x', y')
-              , unvisited (x', y')
-              ]
-        visited' = visited `Set.union` Set.fromList (map fst ps')
+rep (State pos keys grid) = (pos, keys)
 
-distances :: Array (Int, Int) Char -> Array (Char, Char) Int
-distances maze = array ((a, a), (b, b)) $
-      [ ((v, v), 0) | (p, v) <- vs ]
-      ++
-      [ z
-      | (i, (p1, v1)) <- zip [1..] vs
-      , (p2, v2) <- drop i vs
-      , let dist = distance maze p1 p2
-      , z <- [((v1, v2), dist), ((v2, v1), dist)]
-      ]
-  where
-    vs = filter (isDigit . snd) . assocs $ maze
-    es = map snd vs
-    a = minimum es
-    b = maximum es
+next (State pos@(r, c) keys grid) = do
+    (dr, dc) <- [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    let pos'@(r', c') = (r + dr, c + dc)
+    guard (inRange (bounds grid) pos')
+    let z = grid ! pos'
+    guard (z /= '#')
 
-alldistances :: Array (Int, Int) Char -> Array (Char, Char) Int
-alldistances maze = array ((a, a), (b, b)) $
-      [ ((v, v), 0) | (p, v) <- vs ]
-      ++
-      [ ((v1, maze ! p2), d)
-      | (p1, v1) <- vs
-      , (p2, d) <- alldistance maze p1
-      ]
-  where
-    vs = filter (isDigit . snd) . assocs $ maze
-    es = map snd vs
-    a = minimum es
-    b = maximum es
+    if isDigit z
+        then return (State pos' (IntSet.insert (digitToInt z) keys) grid, 1)
+        else return (State pos' keys grid, 1)
 
-shortestPath :: Array (Int, Int) Char -> (Int, [Char])
-shortestPath maze = minimumBy (comparing fst) $ map (pathLength &&& id) paths
-  where
-    -- Distance matrix
-    dist = distances maze
+main = do
+    input <- readFile "input.txt"
+    let grid = parse input
+        digits = map digitToInt (filter isDigit (elems grid))
+        [start] = [pos | (pos, x) <- assocs grid, x == '0']
+        allKeys = IntSet.fromList digits
+        state0 = State start (IntSet.singleton 0) grid
+        done (State _ keys _) = keys == allKeys
 
-    pathLength vs = sum $ zipWith (curry (dist !)) vs (tail vs)
-
-    -- Get all permutations of vertices (starting on vertex 0)
-    vs = let (vs, ws) = unzip (indices dist) in nub vs `union` nub ws
-    paths = map ('0':) $ permutations (vs \\ ['0'])
-
--- main = readFile "input.txt" >>= print . distances . parse
-
-main = readFile "input.txt" >>= print . length . flip alldistance (5, 135) . parse
+    -- Part 1
+    let (_, ans) = head $ filter (done . fst) $ bfs rep next state0
+    print ans
