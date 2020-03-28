@@ -44,7 +44,7 @@ next (State pos@(r, c) keys grid) = do
     let z = grid ! pos'
     guard (z /= '#')
 
-    if isDigit z
+    if isDigit z && digitToInt z `IntSet.notMember` keys
         then return (State pos' (IntSet.insert (digitToInt z) keys) grid, 1)
         else return (State pos' keys grid, 1)
 
@@ -54,9 +54,14 @@ main = do
         digits = map digitToInt (filter isDigit (elems grid))
         [start] = [pos | (pos, x) <- assocs grid, x == '0']
         allKeys = IntSet.fromList digits
-        state0 = State start (IntSet.singleton 0) grid
-        done (State _ keys _) = keys == allKeys
+        state0 = State start mempty grid
 
     -- Part 1
-    let (_, ans) = head $ filter (done . fst) $ bfs rep next state0
-    print ans
+    let done1 (State _ keys _) = keys == IntSet.fromList (digits \\ [0])
+        paths = filter (done1 . fst) $ bfs rep next state0
+        (state1, ans1) = head paths
+    print ans1
+
+    -- Part 2
+    let ans2 = minimum $ map (\(s, n) -> let Just (_, m) = find ((== start) . pos . fst) (bfs rep next s) in n + m) paths
+    print ans2
