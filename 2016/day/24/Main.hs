@@ -44,16 +44,15 @@ next (State pos@(r, c) keys grid) = do
     let z = grid ! pos'
     guard (z /= '#')
 
-    if isDigit z && digitToInt z `IntSet.notMember` keys
+    if isDigit z
         then return (State pos' (IntSet.insert (digitToInt z) keys) grid, 1)
         else return (State pos' keys grid, 1)
 
 main = do
     input <- readFile "input.txt"
     let grid = parse input
-        digits = map digitToInt (filter isDigit (elems grid))
-        [start] = [pos | (pos, x) <- assocs grid, x == '0']
-        allKeys = IntSet.fromList digits
+        digits = map digitToInt $ filter isDigit $ elems grid
+        [start] = [pos | (pos, '0') <- assocs grid]
         state0 = State start mempty grid
 
     -- Part 1
@@ -63,5 +62,6 @@ main = do
     print ans1
 
     -- Part 2
-    let ans2 = minimum $ map (\(s, n) -> let Just (_, m) = find ((== start) . pos . fst) (bfs rep next s) in n + m) paths
+    let done2 (State pos _ _) = pos == start
+        ans2 = minimum $ map (\(s, n) -> let Just (_, m) = find (done2 . fst) (bfs rep next s) in n + m) paths
     print ans2
