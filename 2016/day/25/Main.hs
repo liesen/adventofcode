@@ -1,9 +1,8 @@
-{-# LANGUAGE ViewPatterns, LambdaCase #-}
+{-# LANGUAGE ViewPatterns #-}
 import Data.Array
 import Data.Char
 import Data.List
-
-import Debug.Trace
+import qualified Data.Set as Set
 
 --- Day 25: Clock Signal ---
 
@@ -78,67 +77,24 @@ step cpu =
 
 done cpu = _pc cpu > snd (bounds (_code cpu))
 
-{-
-steps = unfoldr (\cpu -> if done cpu then Nothing else Just (cpu, step cpu))
-
-run = until done step
-
-testInput = [
-    "cpy 2 a",
-    "tgl a",
-    "tgl a",
-    "tgl a",
-    "cpy 1 a",
-    "dec a",
-    "dec a"
-  ]
-
-test = steps (cpu0 testInput)
-test' = run (cpu0 testInput)
-
-runFile path = readFile path >>= return . run . cpu0 . lines
-
-main1 = runFile "input.txt" >>= print . (! 0) . _reg
-
---- Part Two ---
-
--- Get result for the first couple of A:s
---
--- {6,8820},{7,13140},{8,48420},{9,370980},{10,3636900}
--- 
-
--- readFile "input.txt" >>= \input -> let code = lines input in mapM_ (putStrLn . show') $ map (\n -> (n, run (cpuA n code))) [6..10]
--}
-
-stepFile path = do
-    code <- lines `fmap` readFile path
-    loop (0, cpuA 10 code)
+findCycle maxLength xs cpu = go maxLength xs cpu mempty
   where
-    loop (maxpc, cpu)
-        | done cpu = return ()
-        | _pc cpu < maxpc = let (output, cpu') = step cpu
-                            in case output of
-                                 Just x  -> print x >> loop (max maxpc (_pc cpu'), cpu')
-                                 Nothing -> loop (max maxpc (_pc cpu'), cpu')
-        | otherwise = print cpu >> getChar >> loop (maxpc + 1, cpu)
+    go n (x:xs) cpu seen
+      | Set.member rep seen = True
+      | done cpu = False
+      | n == 0 = True  -- this is likely a repeating sequence
+      | otherwise = case step cpu of
+                      (Just y, cpu')
+                        | x /= y -> False -- fail "cycle mismatch"
+                        | otherwise -> go (n - 1) xs cpu' (Set.insert rep seen)
+                      (Nothing, cpu') -> go n (x:xs) cpu' (Set.insert rep seen)
+      where
+        rep = (_pc cpu, _reg cpu)
 
-step2 = stepFile "input.txt"
+main = do
+    input <- readFile "input.txt"
+    let program = lines input
 
-main2 = do
-    code <- lines `fmap` readFile "input.txt"
-    loop (cpuA 10 code)
-  where
-    loop cpu
-      | done cpu = return ()
-      | otherwise = let (output, cpu') = step cpu
-                    in case output of
-                         Just x -> print x >> loop cpu'
-                         Nothing -> loop cpu'
-
-{-
--- Then it becomes "clear" that the code produces: a! + 90^2
-main2 = print (product [1..12] + 90 * 90)
-
-main = main1 >> main2
--}
-
+    -- Part 1
+    let Just a = find (\a -> findCycle 100 (cycle [0, 1]) (cpuA a program)) [0..]
+    print a
