@@ -127,11 +127,8 @@ main = do
   
     -- Print C version of the program
     -- putStrLn (codegen dev0)
+
+    -- After some exploration it's clear that the program sums
+    -- all divisors of the number in r5 after initialization
     let r5 = 10551296
     print $ r5 + sum [d | d <- [1..r5 `div` 2], r5 `mod` d == 0]
-
-
-    -- mapM_ (uncurry debug) $ sample 10551296 $ zip [0..] $ iterate eval dev1
-
-    -- plotRun dev1
-
