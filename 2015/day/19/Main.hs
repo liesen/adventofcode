@@ -5,23 +5,20 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.PQueue.Prio.Min as PQueue
 
-newtype Replacement a = Replacement (a, a) deriving (Eq, Ord)
+parseReplacement (span isAlpha -> (x, ' ':'=':'>':' ':(span isAlpha -> (y, z)))) = (x, y)
 
-instance Show a => Show (Replacement a) where
-    show (Replacement (x, y)) = show x ++ " => " ++ show y
+invert (x, y) = (reverse y, reverse x)
 
-parseReplacement (span isAlpha -> (x, ' ':'=':'>':' ':(span isAlpha -> (y, z)))) = Replacement (x, y)
-
-invert (Replacement (x, y)) = Replacement (reverse y, reverse x)
-
-replace (Replacement (needle, z)) haystack =
-    [ x ++ z ++ drop (length needle) y
+replace needle replacement haystack =
+    [ x ++ replacement ++ drop (length needle) y
     | (x, y) <- zip (inits haystack) (tails haystack)
     , needle `isPrefixOf` y
     ]
 
-next :: (Replacement a -> a -> [a]) -> [Replacement a] -> a -> [(a, Int)]
-next f rs x = map (\x' -> (x', 1)) $ concatMap (\r -> f r x) rs
+next :: [(String, String)] -> String -> [(String, Int)]
+next replacements s = [ (s', 1)
+                      | (x, y) <- replacements
+                      , s' <- replace x y s]
 
 astar :: Ord r => (a -> r) -> (a -> [(a, Int)]) -> (a -> Int) -> a -> [(a, Int)]
 astar rep next heuristic start = loop Set.empty (PQueue.singleton 0 (start, 0))
@@ -40,11 +37,11 @@ main = do
     let (map parseReplacement -> replacements, "":molecule:[]) = break null (lines input)
     
     -- Part 1
-    print $ length $ nub $ concatMap (\r -> replace r molecule) replacements
+    print $ length $ nub $ concatMap (\(s, t) -> replace s t molecule) replacements
 
     -- Part 2
     -- Do replacements in reverse to avoid backtracking
     let revReplacements = map invert replacements
         revMolecule = reverse molecule
-    let Just (_e, ans) = find ((== "e") . fst) $ astar id (next replace revReplacements) length revMolecule
+    let Just (_e, ans) = find ((== "e") . fst) $ astar id (next revReplacements) length revMolecule
     print ans
