@@ -1,16 +1,7 @@
 {-# LANGUAGE ViewPatterns #-}
 import Control.Arrow
-import Control.Monad
 import Data.Array
 import Data.List
-import Data.Ord
-import Data.Function (on)
-import qualified Data.PQueue.Prio.Min as PQueue
-import qualified Data.Set as Set
-import Data.Set (Set)
-import qualified Data.Sequence as Seq
-import Data.Sequence (Seq (..))
-import Debug.Trace
 
 -- Full node
 data Node = Node
