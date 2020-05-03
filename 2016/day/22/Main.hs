@@ -62,51 +62,25 @@ newState nodes = State (x0, 0) arr
     x0 = maximum [x | (x, y) <- locs, y == 0]
     use node = Use (used node, size node)
 
-bfs :: Ord r => (a -> r) -> (a -> [(a, Int)]) -> a -> [(a, Int)]
-bfs rep next start = loop Set.empty (Seq.fromList [(start, 0)])
+
+showGrid :: (Int, Int) -> Array (Int, Int) Use -> String
+showGrid pos a =
+    unlines [ intercalate " " [ node (x, y) | x <- [mincol..maxcol] ]
+            | y <- [minrow..maxrow]]
   where
-    loop _    Empty = []
-    loop seen ((x, cost) :<| q1)
-        | Set.member r seen = loop seen q1
-        | otherwise = traceShow (Set.size seen1) $ (x, cost) : loop seen1 q2
-        where
-          r = rep x
-          seen1 = Set.insert r seen
-          q2 = q1 <> Seq.fromList (map (\(x', stepcost) -> (x', cost + stepcost)) (next x))
-
-astar :: Ord r => (a -> r) -> (a -> [(a, Int)]) -> (a -> Int) -> a -> [(a, Int)]
-astar rep next heuristic start = loop Set.empty (PQueue.singleton 0 (start, 0))
-  where
-    loop _    (PQueue.minView -> Nothing) = []
-    loop seen (PQueue.minView -> Just ((x, cost), q1))
-        | Set.member r seen = loop seen q1
-        | Set.size seen1 `mod` 1000 == 0 = traceShow (Set.size seen1) $ (x, cost) : loop seen1 q2
-        | otherwise = (x, cost) : loop seen1 q2
-        where
-          r = rep x
-          seen1 = Set.insert r seen
-          q2 = foldl' (\q (x', stepcost) -> let cost' = cost + stepcost in cost' `seq` PQueue.insert (cost' + heuristic x') (x', cost') q) q1 (next x)
-
--- Use the manhattan distance as heuristic
-heuristic (State (x, y) _) = x + y
-
-next :: State -> [(State, Int)]
-next (State pos arr) =
-    [ (State pos' arr', 1)
-    | (pos1@(x1, y1), Use (used1, size1)) <- assocs arr
-    , used1 /= 0 -- Don't move empty nodes!
-    , (dx, dy) <- [(0, -1), (0, 1), (-1, 0), (1, 0)]
-    , let pos2@(x2, y2) = (x1 + dx, y1 + dy)
-    , inRange (bounds arr) pos2
-    , pos1 /= pos2
-    , let Use (used2, size2) = arr ! pos2
-    , used1 + used2 <= size2
-    , let pos' = if pos1 == pos then pos2 else pos
-    , let arr' = arr // [(pos1, Use (0, size1)), (pos2, Use (used1 + used2, size2))]
-    ]
-
-done (State (0, 0) _) = True
-done _                = False
+    ((mincol, minrow), (maxcol, maxrow)) = bounds a
+    minSize = minimum [ size | Use (_used, size) <- elems a ]
+    node pos = brackets pos (char pos)
+    brackets (x, y) z
+      | (x, y) == (0, 0) = ['(', z, ')']
+      | otherwise        = [' ', z, ' ']
+    char (x, y)
+      | (x, y) == pos  = 'G'
+      | used == 0      = '_'
+      | used > minSize = '#'
+      | otherwise      = '.'
+      where
+        Use (used, size) = a ! (x, y)
 
 main = do
     input <- readFile "input.txt"
@@ -116,4 +90,18 @@ main = do
     print $ length $ viablePairs nodes
 
     -- Part 2
-    print $ snd $ head $ filter (done . fst) $ astar id next heuristic (newState nodes)
+    -- Solved by hand
+    let a = array (minimum locs, maximum locs) (map (loc &&& use) nodes)
+        locs = map loc nodes
+        xmax = maximum [x | (x, y) <- locs, y == 0]
+        use node = Use (used node, size node)
+    -- putStrLn (showGrid (xmax, 0) a)
+
+    -- Find unused node
+    let Just unused@(x0, y0) = find (\p -> let Use (used, size) = a ! p in used == 0) locs
+
+    print $
+      -- Move unused node to goal data node
+      x0 + y0 + xmax
+      -- Then rotate the goal data using the free node all the way to the top left node
+      + 5 * (xmax - 1)
