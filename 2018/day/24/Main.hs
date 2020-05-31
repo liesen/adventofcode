@@ -1,22 +1,59 @@
-{-# LANGUAGE RecordWildCards, ViewPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
 import Control.Arrow ((&&&))
+import Control.Monad
 import Data.Char
 import Data.Function
 import Data.List
 import Data.Maybe
 import Data.Ord
-import Debug.Trace
 import Text.ParserCombinators.ReadP
 
 
 data Team = ImmuneSystem
           | Infection
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord)
+
+instance Show Team where
+    show ImmuneSystem = "Immune System"
+    show Infection = "Infection"
 
 opponent ImmuneSystem = Infection
 opponent Infection = ImmuneSystem
 
-opponents g = filter (\g' -> team g /= team g')
+data Group = Group
+    { team :: Team
+    , index :: Int
+    , numberOfUnits :: Int
+    , hitPoints :: Int
+    , attackDamage :: Int
+    , attackType :: String
+    , initiative :: Int
+    , weaknesses :: [String]
+    , immunities :: [String]
+    }
+
+groupId = team &&& index
+
+instance Eq Group where
+    (==) = (==) `on` groupId
+
+instance Show Group where
+    show Group {..} =
+        show numberOfUnits ++ " units " ++
+        "each with " ++ show hitPoints ++ " hit points" ++
+        immunitiesAndWeaknesses ++ " with an attack that does " ++ show attackDamage ++ " " ++ attackType ++ " damage" ++
+        " at initiative " ++ show initiative
+      where
+        immunitiesAndWeaknesses
+            | null immunities && null weaknesses = ""
+            | not (null immunities) && null weaknesses = " (immune to " ++ intercalate ", " immunities ++ ")"
+            | null immunities && not (null weaknesses) = " (weak to " ++ intercalate ", " weaknesses ++ ")"
+            | otherwise = " (immune to " ++ intercalate ", " immunities ++ "; weak to " ++ intercalate ", " weaknesses ++ ")"
+
+effectivePower :: Group -> Int
+effectivePower Group {..} = attackDamage * max 0 numberOfUnits
+
+alive Group {..} = numberOfUnits > 0
 
 newtype Groups = Groups { groups :: [Group] }
 
@@ -65,37 +102,6 @@ parseImmunitiesAndWeaknesses =
     immunities = string "immune to " *> sepBy1 (many (satisfy isAlpha)) (string ", ")
     weaknesses = string "weak to " *> sepBy1 (many (satisfy isAlpha)) (string ", ")
 
-data Group = Group
-    { team :: Team
-    , index :: Int
-    , numberOfUnits :: Int
-    , hitPoints :: Int
-    , attackDamage :: Int
-    , attackType :: String
-    , initiative :: Int
-    , weaknesses :: [String]
-    , immunities :: [String]
-    } deriving (Eq)
-
-instance Show Group where
-    show Group {..} =
-        show numberOfUnits ++ " units " ++
-        "each with " ++ show hitPoints ++ " hit points" ++
-        immunitiesAndWeaknesses ++ " with an attack that does " ++ show attackDamage ++ " " ++ attackType ++ " damage" ++
-        " at initiative " ++ show initiative
-      where
-        immunitiesAndWeaknesses
-            | null immunities && null weaknesses = ""
-            | not (null immunities) && null weaknesses = " (immune to " ++ intercalate ", " immunities ++ ")"
-            | null immunities && not (null weaknesses) = " (weak to " ++ intercalate ", " weaknesses ++ ")"
-            | otherwise = " (immune to " ++ intercalate ", " immunities ++ "; weak to " ++ intercalate ", " weaknesses ++ ")"
-
-effectivePower :: Group -> Int
-effectivePower Group{..} = numberOfUnits * attackDamage
-
-showGroup :: Group -> String
-showGroup (g@Group {..}) = "Group " ++ show index ++ " contains " ++ show numberOfUnits ++ " units (effective power: " ++ show (effectivePower g) ++ ")"
-
 data TargetSelection = TargetSelection
     { attacker :: Group
     , defender :: Group
@@ -103,63 +109,79 @@ data TargetSelection = TargetSelection
 
 instance Show TargetSelection where
     show TargetSelection {..} =
-        showTeam attackingTeam ++ " group " ++ show attackingTeamIndex ++ " would deal defending group " ++ show defendingTeamIndex ++ " " ++ show (effectiveness attacker defender) ++ " damage"
-      where
-        (attackingTeam, attackingTeamIndex) = (team attacker, index attacker)
-        (defendingTeam, defendingTeamIndex) = (team defender, index defender)
-        showTeam ImmuneSystem = "Immune system"
-        showTeam Infection = "Infection"
+        show (team attacker) ++ " group " ++ show (index attacker) ++
+        " would deal defending group " ++ show (team defender) ++ " " ++
+        show (effectiveDamage attacker defender) ++ " damage"
 
--- targetSelection :: GameState -> _
-targetSelection (Groups groups) = foldl select mempty targets
+targetSelection :: Groups -> [TargetSelection]
+targetSelection (Groups gs) = selection
   where
     targets = do
-        attacker <- sortOn (Down . effectivePower &&& Down . initiative) groups
-        defender <- sortOn (Down . effectiveness attacker &&& Down . effectivePower) (opponents attacker)
+        attacker <- sortOn (effectivePower &&& initiative) gs
+        defender <- sortOn (effectiveDamage attacker &&& effectivePower &&& initiative) (opponents attacker)
+        guard (attackType attacker `notElem` immunities defender)
         return TargetSelection {..}
 
-    opponents attacker = [g | g <- groups, team g /= team attacker]
+    opponents g = filter (\g' -> team g /= team g') gs
 
-    select xs x
-        | attacker x `elem` map attacker xs = xs
-        | defender x `elem` map defender xs = xs
+    selection = foldr select mempty targets  -- Make sure attackers and defenders are chosen only once
+
+    select x xs
+        | attacker x `elem` map attacker xs = xs  -- Attacker already chosen
+        | defender x `elem` map defender xs = xs  -- Defender already chosen
         | otherwise = x:xs
 
-attacking :: Groups -> [TargetSelection] -> [Group]
-attacking (Groups groups) (foldl attack groups . sortOn (Down . initiative . attacker) -> groups') = nubBy ((==) `on` (team &&& index)) groups'
+damageMultiplier :: Group -> Group -> Int
+damageMultiplier attacker defender
+    | attackType attacker `elem` immunities defender = 0
+    | attackType attacker `elem` weaknesses defender = 2
+    | otherwise                                      = 1
+  
+effectiveDamage attacker defender = effectivePower attacker * damageMultiplier attacker defender
 
-alive Group {..} = numberOfUnits > 0
+attacking :: Groups -> [TargetSelection] -> Groups
+attacking (Groups gs) sel =
+    let gs' = foldr attack gs $ sortOn (initiative . attacker) sel
+    in Groups $ nub (gs' ++ gs)
 
-attack groups (TargetSelection {..}) = -- traceShow ((TargetSelection attacker' defender'), kills) $
-    defender'{numberOfUnits = n - kills}:groups
+attack (TargetSelection {..}) gs = defender'{numberOfUnits = n - kills}:gs
   where
-    Just attacker' = find (\g -> team g == team attacker && index g == index attacker) groups
-    Just defender' = find (\g -> team g == team defender && index g == index defender) groups
+    Just attacker' = find (== attacker) gs -- Find "updated" attacker
+    Just defender' = find (== defender) gs
     n = numberOfUnits defender'
-    kills = effectiveness attacker' defender' `div` hitPoints defender'
+    kills = effectiveDamage attacker' defender' `div` hitPoints defender'
 
 step :: Groups -> Groups
-step g0@(Groups {..}) = Groups $ filter alive (groups' ++ [g | g <- groups, (team g, index g) `notElem` map (\h -> (team h, index h)) groups'])
+step g = Groups $ filter alive gs'
   where
-    groups' = attacking g0 (targetSelection g0)
+    Groups gs' = attacking g (targetSelection g)
 
-done (Groups {..})
+winner (Groups gs)
     | null immuneSystem && not (null infection) = Just Infection
     | not (null immuneSystem) && null infection = Just ImmuneSystem
     | otherwise = Nothing
   where
-    immuneSystem = filter ((== ImmuneSystem) . team) groups
-    infection = filter ((== Infection) . team) groups
+    immuneSystem = filter ((== ImmuneSystem) . team) gs
+    infection = filter ((== Infection) . team) gs
 
-effectiveness attacker@(Group {attackType = attackType}) defender@(Group {immunities = immunities, weaknesses = weaknesses})
-    | attackType `elem` immunities = 0
-    | attackType `elem` weaknesses = 2 * effectivePower attacker
-    | otherwise                    = effectivePower attacker
+countUnits (Groups gs) = sum (map numberOfUnits gs)
+
+boost (Groups gs) i = Groups (map f gs)
+  where
+    f g@(Group {..}) | team == ImmuneSystem = g {attackDamage = attackDamage + i}
+                     | otherwise = g
 
 main = do
     input <- readFile "input.txt"
-    let [(g, "")] = readP_to_S (parse <* eof) input
-        Groups groups = g
+    let [(g0, "")] = readP_to_S (parse <* eof) input
 
-    let Groups groups' = until (isJust . done) step g
-    print $ sum $ map numberOfUnits groups'
+    -- Part 1
+    let ans1 = until (isJust . winner) step g0
+    print $ countUnits ans1
+
+    -- Part 2
+    -- Boost number found by trial and error.  41 is a win for the infection,
+    -- 42 is a tie (no team deals enough damage to reduce the strength of its
+    -- opponent), and 43 is a win for the immune system.
+    let ans2 = until (isJust . winner) step (boost g0 43)
+    print $ countUnits ans2
