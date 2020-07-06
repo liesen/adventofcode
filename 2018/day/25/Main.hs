@@ -1,5 +1,3 @@
-{-# LANGUAGE ViewPatterns #-}
-import Data.Char
 import Data.List
 import Text.ParserCombinators.ReadP
 
@@ -7,10 +5,7 @@ import Text.ParserCombinators.ReadP
 type Point = [Int]
 
 parse :: ReadP [Point]
-parse = many p
-    where
-        p :: ReadP Point
-        p = do
+parse = many $ do
             skipSpaces
             xs <- count 3 (read <$> munch1 (/= ',') <* char ',')
             y <- read <$> munch1 (/= '\n')
@@ -21,11 +16,10 @@ dist :: Point -> Point -> Int
 dist a b = sum $ map abs $ zipWith (-) a b
 
 cluster :: [Point] -> [[Point]]
-cluster xs = go xs []
-    where
-        go :: [Point] -> [[Point]] -> [[Point]]
-        go []     cs = cs
-        go (z:zs) (partition (any ((<= 3) . dist z)) -> (xs, ys)) = go zs ((z:concat xs):ys)
+cluster = foldr insert []
+  where
+    insert p cs = let (ins, outs) = partition (any ((<= 3) . dist p)) cs
+                  in (p:concat ins):outs
 
 main = do
     input <- readFile "input.txt"
