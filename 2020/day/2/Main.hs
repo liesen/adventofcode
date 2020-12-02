@@ -4,7 +4,7 @@ import Text.ParserCombinators.ReadP
 
 data Policy = Policy Int Int Char deriving Show
 
-parsePolicy = Policy <$> number <*> (char '-' *> number) <*> (char ' ' *> get)
+parsePolicy = Policy <$> number <* char '-' <*> number <* char ' ' <*> get
   where 
     number = read <$> munch1 isDigit
 
