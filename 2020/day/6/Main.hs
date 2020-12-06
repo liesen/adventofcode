@@ -1,20 +1,15 @@
-import qualified Data.Set as Set
+import Text.ParserCombinators.ReadP
+import Data.Char
+import Data.List
 
-splitGroups = foldr f [[]] . lines
-    where
-        f "" (g:groups) = []:g:groups
-        f x  (g:groups) = (x:g):groups
+parse = munch1 isAlpha `endBy` char '\n' `sepBy` char '\n'
 
 main = do
     input <- readFile "input.txt"
-    let groups = splitGroups input
+    let [(groups, "")] = readP_to_S (parse <* eof) input
 
     -- Part 1
-    print $ sum $ map (length . Set.fromList . concat) groups
+    print $ length $ concatMap (foldr union []) groups
 
     -- Part 2
-    print $ sum
-          $ map length
-          $ map (\g -> let y = Set.fromList (concat g)
-                       in foldr (Set.intersection . Set.fromList) y g)
-          $ groups
+    print $ length $ concatMap (foldr1 intersect) groups

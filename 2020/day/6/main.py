@@ -26,6 +26,5 @@ for i, group in enumerate(groups):
 
     ans2 += len(y)
 
-
 print(ans1)
 print(ans2)
