@@ -14,5 +14,7 @@ main = do
 
     -- Part 2
     print $ sum
+          $ map length
           $ map (\g -> let y = Set.fromList (concat g)
-                       in length (foldr (Set.intersection . Set.fromList) y g)) groups
+                       in foldr (Set.intersection . Set.fromList) y g)
+          $ groups

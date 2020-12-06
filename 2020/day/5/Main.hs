@@ -10,10 +10,10 @@ lowerHalf (Range lo hi) = Range lo (lo + (hi - lo) `div` 2)
 data Seat a = Seat (Range a) (Range a)
     deriving (Eq, Ord, Show)
 
-step (Seat row col) 'B' = Seat (upperHalf row) col
-step (Seat row col) 'F' = Seat (lowerHalf row) col
-step (Seat row col) 'R' = Seat row (upperHalf col)
-step (Seat row col) 'L' = Seat row (lowerHalf col)
+step (Seat r c) 'B' = Seat (upperHalf r) c
+step (Seat r c) 'F' = Seat (lowerHalf r) c
+step (Seat r c) 'R' = Seat r (upperHalf c)
+step (Seat r c) 'L' = Seat r (lowerHalf c)
 
 scan :: String -> Seat Int
 scan = foldl step (Seat (Range 0 127) (Range 0 7))
