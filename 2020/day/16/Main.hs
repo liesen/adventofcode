@@ -5,6 +5,7 @@ import Control.Monad
 import Data.Monoid
 import qualified Data.Set as Set
 import Debug.Trace
+import Data.Maybe
 
 data Cond
     = Range Int Int
@@ -51,11 +52,11 @@ completelyInvalid rules (Ticket xs) =
     f (Rule _ cond) = eval cond
 
 part1 :: [Rule] -> Ticket -> Int
-part1 rules (Ticket xs) = sum $ map f xs
+part1 rules (Ticket xs) = sum $ mapMaybe invalid xs
   where
-    f x
-        | not (any (\(Rule _ cond) -> eval cond x) rules) = x
-        | otherwise = 0
+    invalid x
+        | not (any (\(Rule _ cond) -> eval cond x) rules) = Just x
+        | otherwise = Nothing
 
 validIndices (Rule _ cond) (Ticket xs) = [i | (i, x) <- zip [0..] xs, eval cond x]
 
