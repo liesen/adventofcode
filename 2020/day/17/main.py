@@ -109,13 +109,8 @@ class ConwayHypercubes:
     # evolving, which is much more efficient
     def faststep(self):
         new_active = set()
-        seen = set()
 
         for p in self.active | set(q for p in self.active for q in adj4(p)):
-            if p in seen:
-                continue
-
-            seen.add(p)
             k = sum(1 for q in adj4(p) if q in self.active)
 
             if p in self.active and 2 <= k <= 3:
@@ -132,6 +127,9 @@ print(len(cc4.faststep().faststep().faststep().faststep().faststep().faststep().
 # Experimental Conway Cubes where the coordinates
 # are of any dimension represented by lists. More
 # general but slower than the specialized versions.
+
+from collections import deque
+
 @dataclass
 class ConwayAnycubes:
     dim: int  # Coordinate dimensions
