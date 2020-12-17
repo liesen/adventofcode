@@ -46,7 +46,7 @@ class ConwayCubes:
 active3 = set()
 llx, lly, urx, ury = 0, 0, 0, 0
 
-for y, line in enumerate(fileinput.input('testinput.txt')):
+for y, line in enumerate(fileinput.input('input.txt')):
     for x, ch in enumerate(line.strip()):
         llx = min(x, llx)
         lly = min(y, lly)
@@ -127,9 +127,6 @@ print(len(cc4.faststep().faststep().faststep().faststep().faststep().faststep().
 # Experimental Conway Cubes where the coordinates
 # are of any dimension represented by lists. More
 # general but slower than the specialized versions.
-
-from collections import deque
-
 @dataclass
 class ConwayAnycubes:
     dim: int  # Coordinate dimensions
