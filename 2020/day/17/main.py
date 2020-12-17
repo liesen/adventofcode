@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Tuple, Set
 import fileinput
-import sys
 
 
 def adj3(p):
@@ -106,8 +105,29 @@ class ConwayHypercubes:
             ur=(urx + 1, ury + 1, urz + 1, urw + 1),
             active=new_active)
 
+    # This function only considers neighbors + neighbors when
+    # evolving, which is much more efficient
+    def faststep(self):
+        new_active = set()
+        seen = set()
+
+        for p in self.active | set(q for p in self.active for q in adj4(p)):
+            if p in seen:
+                continue
+
+            seen.add(p)
+            k = sum(1 for q in adj4(p) if q in self.active)
+
+            if p in self.active and 2 <= k <= 3:
+                new_active.add(p)
+            elif p not in self.active and k == 3:
+                new_active.add(p)
+
+        return ConwayHypercubes(ll=None, ur=None, active=new_active)
+
 cc4 = ConwayHypercubes((llx, lly, 0, 0), (urx, ury, 0, 0), active4)
-print(len(cc4.step().step().step().step().step().step().active))
+# print(len(cc4.step().step().step().step().step().step().active))
+print(len(cc4.faststep().faststep().faststep().faststep().faststep().faststep().active))
 
 # Experimental Conway Cubes where the coordinates
 # are of any dimension represented by lists. More
@@ -156,5 +176,4 @@ class ConwayAnycubes:
         return ConwayAnycubes(dim=self.dim, size=self.size + 1,
                               active=set(tuple(q) for q in go([0] * self.dim, self.dim - 1)))
 
-print(len(ConwayAnycubes(dim=4, size=3, active=active4).step().step().step().step().step().step().active))
-
+# print(len(ConwayAnycubes(dim=4, size=3, active=active4).step().step().step().step().step().step().active))
