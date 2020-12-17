@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Tuple, Set
 import fileinput
+import sys
 
 
 def adj3(p):
@@ -46,7 +47,7 @@ class ConwayCubes:
 active3 = set()
 llx, lly, urx, ury = 0, 0, 0, 0
 
-for y, line in enumerate(fileinput.input('input.txt')):
+for y, line in enumerate(fileinput.input('testinput.txt')):
     for x, ch in enumerate(line.strip()):
         llx = min(x, llx)
         lly = min(y, lly)
@@ -107,3 +108,53 @@ class ConwayHypercubes:
 
 cc4 = ConwayHypercubes((llx, lly, 0, 0), (urx, ury, 0, 0), active4)
 print(len(cc4.step().step().step().step().step().step().active))
+
+# Experimental Conway Cubes where the coordinates
+# are of any dimension represented by lists. More
+# general but slower than the specialized versions.
+@dataclass
+class ConwayAnycubes:
+    dim: int  # Coordinate dimensions
+    size: int  # Size of the grid
+    active: Set[object]  # Set of active cubes
+
+    @staticmethod
+    def neighbors(p):
+        def go(q, i):
+            if i == -1:
+                yield q
+                return
+
+            for d in [-1, 0, 1]:
+                q[i] = p[i] + d
+
+                for q in go(q, i - 1):
+                    yield q
+
+        for q in go([0] * len(p), len(p) - 1):
+            if p != q:
+                yield q
+
+    def step(self):
+        def go(p, i):
+            if i == -1:
+                k = sum(1 for q in self.neighbors(p) if tuple(q) in self.active)
+
+                if tuple(p) in self.active and 2 <= k <= 3:
+                    yield p
+                elif tuple(p) not in self.active and k == 3:
+                    yield p
+
+                return
+
+            for d in range(-self.size - 1, self.size + 2):
+                p[i] = d
+                
+                for q in go(p, i - 1):
+                    yield q
+
+        return ConwayAnycubes(dim=self.dim, size=self.size + 1,
+                              active=set(tuple(q) for q in go([0] * self.dim, self.dim - 1)))
+
+print(len(ConwayAnycubes(dim=4, size=3, active=active4).step().step().step().step().step().step().active))
+
