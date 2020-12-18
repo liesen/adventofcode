@@ -15,13 +15,13 @@ add, mul :: ReadP (Expr -> Expr -> Expr)
 add = Add <$ char '+'
 mul = Mul <$ char '*'
 
-expr :: ReadP Expr
-expr = chainl1 (skipSpaces *> term) (skipSpaces *> op)
+expr1 :: ReadP Expr
+expr1 = chainl1 (skipSpaces *> term1) (skipSpaces *> op)
   where
-    op = add <++ mul
+    op = add +++ mul
 
-term :: ReadP Expr
-term = lit <++ parens expr
+term1 :: ReadP Expr
+term1 = lit +++ parens expr1
 
 parens = between (char '(') (char ')')
 
@@ -30,10 +30,24 @@ eval (Lit n)   = n
 eval (Add l r) = eval l + eval r
 eval (Mul l r) = eval l * eval r
 
+evalLine :: ReadP Expr -> String -> Int
+evalLine p = eval . fst . head . readP_to_S (p <* eof)
+
+-- https://en.wikibooks.org/wiki/Haskell/ParseExps#Structure_Emerges
+expr2 = foldr (\op p ->
+                    let this = p +++ do a <- p +++ parens expr2
+                                        f <- skipSpaces *> op
+                                        f a <$> (skipSpaces *> this)
+                    in this)
+              (lit +++ parens expr2)
+              [mul, add]
+
 main :: IO ()
 main = do
     input <- readFile "input.txt"
-    let [(exprs, "")] = readP_to_S (expr `endBy` char '\n' <* eof) input
 
     -- Part 1
-    print $ getSum $ foldMap (Sum . eval) exprs
+    print $ getSum $ foldMap (Sum . evalLine expr1) $ lines input
+
+    -- Part 2
+    print $ getSum $ foldMap (Sum . evalLine expr2) $ lines input
