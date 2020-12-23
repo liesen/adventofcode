@@ -17,11 +17,12 @@ step (Cups (curr :<| a :<| b :<| c :<| rest)) =
         (xs', _curr :<| next :<| ys') = Seq.breakl (== curr) (xs <> (dest <| a <| b <| c <| ys))
     in Cups $ (next <| ys') <> (xs' |> curr)
   where
-    dest = let k = until (`notElem` [a, b, c]) pred (curr - 1)
-           in if k `elem` rest then k else maximum rest
+    dest = if k0 > 0 then k0 else k1
+      where k0 = until (`notElem` [a, b, c]) pred (curr - 1)
+            k1 = until (`notElem` [a, b, c]) pred 9
 
 main = do
-    let labels = Seq.fromList (map digitToInt testinput)
+    let labels = Seq.fromList (map digitToInt input)
 
     -- Part 1
     print $ iterate step (Cups labels) !! 100
