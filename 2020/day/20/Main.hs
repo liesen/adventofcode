@@ -1,11 +1,11 @@
 {-# LANGUAGE ImportQualifiedPost, ViewPatterns #-}
 import Control.Monad
 import Data.Bits
-import Data.Maybe
 import Data.Char
-import Data.List (transpose, delete, find, foldl')
+import Data.List (transpose, delete, find, foldl', (\\))
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Maybe
 import Data.PQueue.Prio.Min qualified as PQueue
 import Data.Sequence (Seq(..))
 import Data.Sequence qualified as Seq
@@ -19,15 +19,19 @@ ymin = 0
 xmax = 9
 ymax = 9
 
-data Im = Im
-    { top :: !Int
-    , bottom :: !Int
-    , left :: !Int
-    , right :: !Int
-    }
-  deriving (Eq, Ord)
+imageSize = 10
 
-rev n = sum [setBit 0 (ymax - i) | i <- [0..ymax], testBit n i]
+data Im = Im
+    { topEdge :: !Int
+    , bottomEdge :: !Int
+    , leftEdge :: !Int
+    , rightEdge :: !Int
+    }
+  deriving (Eq, Ord, Show)
+
+edges (Im t b l r) = [t, b, l, r]
+
+rev n = sum [setBit 0 (imageSize - 1 - i) | i <- [0..imageSize - 1], testBit n i]
 
 rotateRight (Im top bottom left right) = Im (rev left) (rev right) bottom (rev top)
 rotateLeft (Im top bottom left right) = Im right left (rev top) bottom
@@ -39,6 +43,7 @@ transforms = do
     flip <- [id, flipVertical, flipHorizontal]
     return (rotate . flip)
 
+{-
 instance Show Im where
   show (Im top bottom left right) =
       unlines $ [topLine] ++ body ++ [bottomLine]
@@ -46,6 +51,7 @@ instance Show Im where
       topLine = [if testBit top (xmax - i) then '#' else '.' | i <- [0..xmax]]
       body = [[if testBit left (ymax - i) then '#' else '.'] ++ "        " ++ [if testBit right i then '#' else '.'] | i <- [1..ymax - 1]]
       bottomLine = [if testBit bottom (xmax - i) then '#' else '.' | i <- [0..xmax]]
+-}
 
 image :: ReadP Im
 image = do
@@ -56,8 +62,6 @@ image = do
         r = side (transpose lines !! xmax)
     return (Im t b l r)
 
--- Binary representation of a side (left -> right, top -> bottom)
-side :: String -> Int
 side = foldl setBit 0 . map fst . filter ((== '#') . snd) . zip [9,8..0]
 
 decimal = read <$> munch1 isDigit
@@ -109,15 +113,15 @@ init unsolved = do
         unsolved' = delete n (map fst unsolved)
     return $ State solved' unsolved'
 
-next :: Int -> Map Int Im -> State -> [(State, Int)]
-next size images (State solved unsolved) = do
+next :: Bool -> Int -> Map Int Im -> State -> [(State, Int)]
+next part1 size images (State solved unsolved) = do
     (y, x) <- Map.keys solved
     p@(y', x') <- [(y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)]
     guard $ y' >= 0 && y' <= size && x' >= 0 && x' <= size
     guard $ p `Map.notMember` solved
 
     -- We only care about the corners => only fill edges
-    guard $ x' == 0 || x' == size || y' == 0 || y' == size
+    when part1 $ guard $ x' == 0 || x' == size || y' == 0 || y' == size
     n <- unsolved
     let Just im = Map.lookup n images
     f <- transforms
@@ -127,21 +131,30 @@ next size images (State solved unsolved) = do
         unsolved' = delete n unsolved
     return $ (State solved' unsolved', 1)
   where
-    testAbove (y, x) im = maybe True ((top im ==) . bottom . snd) (Map.lookup (y - 1, x) solved)
-    testBelow (y, x) im = maybe True ((bottom im ==) . top . snd) (Map.lookup (y + 1, x) solved)
-    testLeft (y, x) im = maybe True ((left im ==) . right . snd) (Map.lookup (y, x - 1) solved)
-    testRight (y, x) im = maybe True ((right im ==) . left . snd) (Map.lookup (y, x + 1) solved)
+    testAbove (y, x) im = maybe True ((topEdge im ==) . bottomEdge . snd) (Map.lookup (y - 1, x) solved)
+    testBelow (y, x) im = maybe True ((bottomEdge im ==) . topEdge . snd) (Map.lookup (y + 1, x) solved)
+    testLeft (y, x) im = maybe True ((leftEdge im ==) . rightEdge . snd) (Map.lookup (y, x - 1) solved)
+    testRight (y, x) im = maybe True ((rightEdge im ==) . leftEdge . snd) (Map.lookup (y, x + 1) solved)
 
 corners size = [(0, 0), (0, size), (size, 0), (size, size)]
 
-done size (State solved unsolved) = all (`Map.member` solved) (corners size)
+done1 size (State solved unsolved) = all (`Map.member` solved) (corners size)
+
+done2 size (State solved unsolved) = null unsolved
 
 main = do
     input <- readFile "input.txt"
     let [(images, "")] = readP_to_S (tiles <* skipSpaces <* eof) input
         size = truncate (sqrt (fromIntegral (length images))) - 1
 
-    case find (done size . fst) (astars rep (next size (Map.fromList images)) (heur size) (init images)) of
+    -- Find edge images
+    let edgeIds = Set.unions
+                $ filter ((== 1) . Set.size)
+                $ Map.elems
+                $ Map.fromListWith Set.union [(e, Set.singleton n) | (n, im) <- images, f <- transforms, let im' = f im, e <- edges im']
+        edgeIms = filter ((`Set.member` edgeIds) . fst) images
+
+    case find (done1 size . fst) (astars rep (next True size (Map.fromList edgeIms)) (heur size) (init edgeIms)) of
         Nothing -> putStrLn "no solution"
         Just ((State solved unsolved), m) -> do
             print $ product $ map fst $ mapMaybe (`Map.lookup` solved) $ corners size
