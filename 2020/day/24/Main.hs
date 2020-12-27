@@ -14,22 +14,22 @@ instance Semigroup HexCoord where
 instance Monoid HexCoord where
     mempty = HexCoord 0 0 0
 
--- e, se, sw, w, nw, and ne
--- hex = choice [ string "e" <$ Hex 0 0 (-1) ]
-parseLine []           = Nothing
-parseLine ('e':xs)     = Just (e, xs)
-parseLine ('s':'e':xs) = Just (se, xs)
-parseLine ('s':'w':xs) = Just (sw, xs)
-parseLine ('w':xs)     = Just (w, xs)
-parseLine ('n':'w':xs) = Just (nw, xs)
-parseLine ('n':'e':xs) = Just (ne, xs)
-
 e = HexCoord 1 (-1) 0
 se = HexCoord 0 (-1) 1
 sw = HexCoord (-1) 0 1
 w = HexCoord (-1) 1 0
 nw = HexCoord 0 1 (-1)
 ne = HexCoord 1 0 (-1)
+
+parseCoord []           = Nothing
+parseCoord ('e':xs)     = Just (e, xs)
+parseCoord ('s':'e':xs) = Just (se, xs)
+parseCoord ('s':'w':xs) = Just (sw, xs)
+parseCoord ('w':xs)     = Just (w, xs)
+parseCoord ('n':'w':xs) = Just (nw, xs)
+parseCoord ('n':'e':xs) = Just (ne, xs)
+
+parseLine = mconcat . unfoldr parseCoord
 
 paint black []     = black
 paint black (p:ps)
@@ -53,7 +53,7 @@ main = do
     input <- readFile "input.txt"
     
     -- Part 1
-    let black = paint mempty $ map (mconcat . unfoldr parseLine) $ lines input
+    let black = paint mempty $ map parseLine $ lines input
     print $ length black
 
     -- Part 2
