@@ -43,7 +43,6 @@ recursiveCombat player1 player2 = go mempty player1 player2
       where
         seen' = Set.insert player1 (Set.insert player2 seen)
 
-
 main = do
     input <- readFile "input.txt"
     let [(((1, player1), (2, player2)), "")] = readP_to_S ((,) <$> player <*> (char '\n' *> player) <* eof) input
