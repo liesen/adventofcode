@@ -34,7 +34,7 @@ flipHorizontal (Im ps) = Im $ Set.map (\(y, x) -> (ymax - y, x)) ps
   where ymax = maximum (Set.map fst ps)
 
 transforms = do
-    rotate <- [id, rotateLeft, rotateRight]
+    rotate <- [id, rotateLeft]
     flip <- [id, flipVertical, flipHorizontal, flipVertical . flipHorizontal]
     return (rotate . flip)
 
