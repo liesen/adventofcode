@@ -1,8 +1,7 @@
 {-# LANGUAGE ImportQualifiedPost, ViewPatterns #-}
 import Control.Monad
-import Data.Bits
 import Data.Char
-import Data.List (transpose, delete, find, foldl', (\\))
+import Data.List hiding (init)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -14,55 +13,46 @@ import Data.Set qualified as Set
 import Prelude hiding (init)
 import Text.ParserCombinators.ReadP
 
-xmin = 0
-ymin = 0
-xmax = 9
-ymax = 9
 
-imageSize = 10
+data Im = Im { pixels :: Set (Int, Int) }
+  deriving (Eq, Ord)
 
-data Im = Im
-    { topEdge :: !Int
-    , bottomEdge :: !Int
-    , leftEdge :: !Int
-    , rightEdge :: !Int
-    }
-  deriving (Eq, Ord, Show)
+topEdge (Im ps) = [Set.member (0, x) ps | x <- [0..9]]
+bottomEdge (Im ps) = [Set.member (9, x) ps | x <- [0..9]]
+leftEdge (Im ps) = [Set.member (y, 0) ps | y <- [0..9]]
+rightEdge (Im ps) = [Set.member (y, 9) ps | y <- [0..9]]
 
-edges (Im t b l r) = [t, b, l, r]
+edges im = [topEdge im, bottomEdge im, leftEdge im, rightEdge im]
 
-rev n = sum [setBit 0 (imageSize - 1 - i) | i <- [0..imageSize - 1], testBit n i]
-
-rotateRight (Im top bottom left right) = Im (rev left) (rev right) bottom (rev top)
-rotateLeft (Im top bottom left right) = Im right left (rev top) bottom
-flipVertical (Im top bottom left right) = Im (rev top) (rev bottom) right left
-flipHorizontal (Im top bottom left right) = Im bottom top (rev left) (rev right)
+rotateRight (Im ps) = Im $ Set.map (\(y, x) -> (x, ymax - y)) ps
+  where ymax = maximum (Set.map fst ps)
+rotateLeft (Im ps) = Im $ Set.map (\(y, x) -> (xmax - x, y)) ps
+  where xmax = maximum (Set.map snd ps)
+flipVertical (Im ps) = Im $ Set.map (\(y, x) -> (y, xmax - x)) ps
+  where xmax = maximum (Set.map snd ps)
+flipHorizontal (Im ps) = Im $ Set.map (\(y, x) -> (ymax - y, x)) ps
+  where ymax = maximum (Set.map fst ps)
 
 transforms = do
     rotate <- [id, rotateLeft, rotateRight]
-    flip <- [id, flipVertical, flipHorizontal]
+    flip <- [id, flipVertical, flipHorizontal, flipVertical . flipHorizontal]
     return (rotate . flip)
 
-{-
 instance Show Im where
-  show (Im top bottom left right) =
-      unlines $ [topLine] ++ body ++ [bottomLine]
+  show (Im ps) = unlines [ [if (y, x) `Set.member` ps then '#' else ' ' | x <- [xmin..xmax] ]
+                         | y <- [ymin..ymax]]
     where
-      topLine = [if testBit top (xmax - i) then '#' else '.' | i <- [0..xmax]]
-      body = [[if testBit left (ymax - i) then '#' else '.'] ++ "        " ++ [if testBit right i then '#' else '.'] | i <- [1..ymax - 1]]
-      bottomLine = [if testBit bottom (xmax - i) then '#' else '.' | i <- [0..xmax]]
--}
+      ymax = maximum (Set.map fst ps)
+      xmax = maximum (Set.map snd ps)
+      ymin = minimum (Set.map fst ps)
+      xmin = minimum (Set.map snd ps)
 
 image :: ReadP Im
 image = do
-    lines <- count 10 (count 10 (satisfy (`elem` ".#")) <* char '\n')
-    let t = side (lines !! 0)
-        b = side (lines !! ymax)
-        l = side (transpose lines !! 0)
-        r = side (transpose lines !! xmax)
-    return (Im t b l r)
-
-side = foldl setBit 0 . map fst . filter ((== '#') . snd) . zip [9,8..0]
+    lines <- count imageSize (count imageSize (satisfy (`elem` ".#")) <* char '\n')
+    return $ Im $ Set.fromList [(y, x) | (y, xs) <- zip [0..] lines, (x, '#') <- zip [0..] xs]
+  where
+    imageSize = 10
 
 decimal = read <$> munch1 isDigit
 
@@ -79,13 +69,13 @@ data State = State
     , unsolved :: [Int]
     }
 
-astars :: Ord r
+astar :: Ord r
        => (a -> r)  -- ^ Representation
        -> (a -> [(a, Int)])  -- ^ Neighbor function (neighbor node, step cost)
        -> (a -> Int)  -- ^ Heuristic function (if const 0 then astar = bfs)
        -> [a]  -- ^ Start nodes
        -> [(a, Int)]
-astars rep next heur starts = loop Set.empty q0
+astar rep next heur starts = loop Set.empty q0
   where
     q0 = PQueue.fromList $ map (\start -> (heur start, (start, 0))) starts
     loop _    (PQueue.minView -> Nothing) = []
@@ -114,7 +104,7 @@ init unsolved = do
     return $ State solved' unsolved'
 
 next :: Bool -> Int -> Map Int Im -> State -> [(State, Int)]
-next part1 size images (State solved unsolved) = do
+next part1 size images (State solved unsolved) = do -- traceShow (length solved) $ do
     (y, x) <- Map.keys solved
     p@(y', x') <- [(y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)]
     guard $ y' >= 0 && y' <= size && x' >= 0 && x' <= size
@@ -142,19 +132,66 @@ done1 size (State solved unsolved) = all (`Map.member` solved) (corners size)
 
 done2 size (State solved unsolved) = null unsolved
 
+assemble :: Map (Int, Int) (Int, Im) -> Im
+assemble = 
+    Im
+    . Set.fromList
+    . concatMap (\((yy, xx), (_, (Im ps))) ->
+        [ (yy * 8 + y - 1, xx * 8 + x - 1)
+        | p@(y, x) <- Set.toList ps
+        , y /= 0 && y /= 9 && x /= 0 && x /= 9
+        ]
+    )
+    . Map.assocs
+
+seaMonster = Set.fromList [(y, x) | (y, xs) <- zip [0..] ys, (x, '#') <- zip [0..] xs]
+  where
+    ys = [ "                  # "
+         , "#    ##    ##    ###"
+         , " #  #  #  #  #  #   "
+         ]
+
+removeSeaMonsters (Im ps) =
+    foldl remove ps $ do
+        -- Rotate sea monster and try to match it
+        -- to the image
+        y <- [ymin..ymax]
+        x <- [xmin..xmax]
+        f <- transforms
+        return $ translate (y, x) (pixels (f (Im seaMonster)))
+  where
+    translate (dy, dx) = Set.map (\(y, x) -> (y + dy, x + dx))
+    ymin = minimum (Set.map fst ps)
+    xmin = minimum (Set.map snd ps)
+    ymax = maximum (Set.map fst ps)
+    xmax = maximum (Set.map snd ps)
+    remove haystack needle
+        | needle `Set.isSubsetOf` haystack = Set.difference haystack needle
+        | otherwise                        = haystack
+
 main = do
     input <- readFile "input.txt"
     let [(images, "")] = readP_to_S (tiles <* skipSpaces <* eof) input
         size = truncate (sqrt (fromIntegral (length images))) - 1
 
-    -- Find edge images
+    -- Part 1
+    -- Find edge image candidates: images with an edge that does not match
+    -- any other edge
     let edgeIds = Set.unions
                 $ filter ((== 1) . Set.size)
                 $ Map.elems
                 $ Map.fromListWith Set.union [(e, Set.singleton n) | (n, im) <- images, f <- transforms, let im' = f im, e <- edges im']
         edgeIms = filter ((`Set.member` edgeIds) . fst) images
 
-    case find (done1 size . fst) (astars rep (next True size (Map.fromList edgeIms)) (heur size) (init edgeIms)) of
-        Nothing -> putStrLn "no solution"
-        Just ((State solved unsolved), m) -> do
-            print $ product $ map fst $ mapMaybe (`Map.lookup` solved) $ corners size
+    -- Solved the edges using A* (DFS would've been sufficient)
+    let Just ((State solved1 unsolved1), _) = find (done1 size . fst) (astar rep (next True size (Map.fromList images)) (heur size) (init edgeIms))
+    print $ product $ map fst $ mapMaybe (`Map.lookup` solved1) $ corners size
+
+    -- Part 2
+    -- Solved the rest of the image
+    let unsolved2 = map fst images \\ map fst (Map.elems solved1)
+        state2 = State solved1 unsolved2
+        Just ((State solved2 []), _) = find (done2 size . fst) (astar rep (next False size (Map.fromList images)) (heur size) [state2])
+        im = assemble solved2
+
+    print $ length $ removeSeaMonsters im
