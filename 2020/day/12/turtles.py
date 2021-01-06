@@ -12,9 +12,11 @@ screen.setworldcoordinates(llx, lly, urx, ury)
 # Heroes in a half shell!
 turtle1 = turtle.Turtle()
 turtle1.color('red')
+turtle1.speed(0)
 
 turtle2 = turtle.Turtle()
 turtle2.color('blue')
+turtle2.speed(0)
 
 w = turtle.Vec2D(10, 1)
 
@@ -23,10 +25,10 @@ for line in fileinput.input('input.txt'):
     d, i = line[0], int(line[1:])
 
     if d == 'N':
-        turtle1.goto(turtle1.position() + (0, -i))
+        turtle1.goto(turtle1.position() + (0, i))
         w += (0, i)
     elif d == 'S':
-        turtle1.goto(turtle1.position() + (0, i))
+        turtle1.goto(turtle1.position() + (0, -i))
         w += (0, -i)
     elif d == 'E':
         turtle1.goto(turtle1.position() + (i, 0))
@@ -35,10 +37,10 @@ for line in fileinput.input('input.txt'):
         turtle1.goto(turtle1.position() + (-i, 0))
         w += (-i, 0)
     elif d == 'L':
-        turtle1.left(360 - i)  # -y is north
+        turtle1.left(i)
         w = w.rotate(i)
     elif d == 'R':
-        turtle1.right(360 - i)  # -y is north
+        turtle1.right(i)
         w = w.rotate(360 - i)
     elif d == 'F':
         turtle1.forward(i)
