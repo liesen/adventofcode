@@ -3,7 +3,6 @@ import fileinput
 with fileinput.input() as f:
     N = 12
     numbers = [ln.strip() for ln in f]
-    print(numbers)
 
     # Part 1
     gamma = 0
