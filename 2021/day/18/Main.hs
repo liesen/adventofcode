@@ -68,13 +68,14 @@ explode = fmap snd . go 0
 
 split :: S -> Maybe S
 split (R x)
-    | x >= 10    = Just (P (R (x `div` 2)) (R (x - x `div` 2)))
+    | x >= 10   = Just (P (R (x `div` 2)) (R (x - x `div` 2)))
     | otherwise = Nothing
 split (P a b)   =
     case split a of
         Just a' -> Just (P a' b)
         Nothing -> P a <$> split b
 
+reduce :: S -> S
 -- reduce n = maybe (maybe n reduce' (split n)) reduce' (explode n)
 reduce n =
     case explode n of
