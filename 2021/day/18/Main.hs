@@ -75,41 +75,18 @@ split (P a b)   =
         Just a' -> Just (P a' b)
         Nothing -> P a <$> split b
 
--- Reduction
-data Reduction a
-    = StepExplode a
-    | StepSplit a
-    | StepDone a
-    deriving (Eq, Ord, Show)
-
-reduce :: S -> S
-reduce = stepExplode . StepExplode
-  where
-    stepExplode prev@(StepExplode n) =
-        case explode n of
-            Nothing -> stepSplit (StepExplode n)
-            Just n' ->
-                -- trace ("after explode: " ++ pp n') $
-                stepExplode (StepExplode n')
-    stepExplode prev@(StepSplit n) =
-        case explode n of
-            Nothing -> stepSplit (StepExplode n)
-            Just n' ->
-                -- trace ("after explode: " ++ pp n') $
-                stepExplode (StepExplode n')
-
-    stepSplit (StepExplode n) =
-        case split n of
-            Nothing -> n
-            Just n' ->
-                -- trace ("after split: " ++ pp n') $
-                stepExplode (StepSplit n')
-    stepSplit (StepSplit n) =
-        case split n of
-            Nothing -> stepExplode (StepSplit n)
-            Just n' ->
-                -- trace ("after split: " ++ pp n') $
-                stepExplode (StepSplit n')
+-- reduce n = maybe (maybe n reduce' (split n)) reduce' (explode n)
+reduce n =
+    case explode n of
+        Just n' ->
+          -- trace ("after explode: " ++ pp n') $
+          reduce n'
+        Nothing ->
+            case split n of
+                Nothing -> n
+                Just n' ->
+                  -- trace ("after split: " ++ pp n') $
+                  reduce n'
 
 -- Addition
 instance Semigroup S where
