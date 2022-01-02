@@ -15,7 +15,7 @@ instance Functor Packet where
 
 instance Functor Contents where
     fmap f (Literal a) = Literal (f a)
-    fmap f (Operator a as) =  Operator (f a) (map (fmap f) as)
+    fmap f (Operator a as) = Operator (f a) (map (fmap f) as)
 
 -- Plan is to first convert input into binary text then
 -- use parser combinators to parse it
