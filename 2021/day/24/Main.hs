@@ -58,9 +58,9 @@ val env (Var r) =
         Nothing -> fail "the impossible happened"
         Just r' -> return r'
 
--- Compile whole program, instruction by instruction. This leads to a large
--- expression which takes a long time for Z3 to evaluate. Try blockCompile
--- instead.
+-- Compile the whole program, instruction by instruction. This leads to
+-- a large expression which takes a long time for Z3 to evaluate. Try 
+-- blockCompile instead.
 compile :: Env -> [Instruction] -> Z3 Env
 compile env program = do
     env'@(Env inps vars) <- foldM compile1 env program
@@ -106,12 +106,13 @@ x = (z % 26) + x'
 z = z / z'
 z = z if x == w else (z * 26) + w + y'
 
-x' and y' are literals found in the code. So x and y are temporary
-within each block.
+x', y', z' are literals found in the program.
 
 By operating on each block the Z3 expression becomes manageable.
 -}
 blockCompile program = do
+    -- It's enough to use only z as the environment because 
+    -- it is the only variable whose scope extends a block
     z0 <- Z3.mkInteger 0
     (z, inps) <- foldM compileBlock (z0, []) (blocks program)
     -- Constrain z equal 0
@@ -150,7 +151,6 @@ blockCompile program = do
         _9 <- Z3.mkInteger 9
         Z3.assert =<< Z3.mkAnd =<< sequence [Z3.mkGe w _1, Z3.mkLe w _9]
 
-        -- 
         _26 <- Z3.mkInteger 26
         x <- Z3.mkAdd =<< sequence [Z3.mkMod z _26, Z3.mkInteger (fromIntegral x')]
         z' <- Z3.mkDiv z =<< Z3.mkInteger (fromIntegral z')
@@ -185,7 +185,6 @@ optimize next constrain program = do
 
 maximize = optimize succ Z3.mkGt
 minimize = optimize pred Z3.mkLt
-
 
 main = do
     input <- readFile "input.txt"
