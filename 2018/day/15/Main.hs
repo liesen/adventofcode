@@ -63,7 +63,6 @@ instance Semigroup World where
 instance Monoid World where
     mempty = World mempty (0, 0) mempty
 
--- parse :: String -> World
 parse :: String -> World
 parse s =
     foldMap f $
@@ -77,7 +76,6 @@ parse s =
     f (p, 'G') = World (Set.singleton p) p [Unit 0 p 'G' 3 200]
     f (p, '#') = mempty
     f _        = error "no parse"
-
 
 step :: World -> Either World World
 step world = foldM stepUnit world $ sortOn position (units world)
