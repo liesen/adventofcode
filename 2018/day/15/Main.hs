@@ -2,15 +2,15 @@
 module Main where
 
 import Control.Monad.Except
+import Data.Function (on)
 import Data.List
-import Data.Map (Map, (!))
+import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe
+import Data.Monoid
+import Data.Ord
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Semigroup (Semigroup((<>)))
-import Data.Function (on)
-import Data.Maybe (mapMaybe, catMaybes)
-import Data.Ord (comparing)
 
 
 type Pos = (Int, Int)
@@ -179,7 +179,7 @@ bfs world start = go [(start, (0, Nothing))] mempty
         | pos `notElem` open world = go queue seen
         | pos `elem` occupied && pos /= start = go queue seen
         | pos `elem` seen = go queue seen
-        | otherwise = (pos, (dist, prev)) : go (queue Data.Semigroup.<> next (pos, (dist, prev))) (Set.insert pos seen)
+        | otherwise = (pos, (dist, prev)) : go (queue <> next (pos, (dist, prev))) (Set.insert pos seen)
 
     next :: (Pos, (Int, Maybe Pos)) -> [(Pos, (Int, Maybe Pos))]
     next (pos, (dist, prev)) = [(pos', (dist + 1, Just pos)) | pos' <- sort (adjacent pos)]
@@ -198,9 +198,27 @@ run = go 0
                         Left world' -> round * sumHp world'
                         Right world' -> go (round + 1) world'
 
+modifyElfAttackPower :: World -> Int -> World
+modifyElfAttackPower world ap = world {units = [if elf unit then unit {attackPower = ap} else unit | unit <- units world]}
+
+run2 = go 0
+  where
+    go round world
+      | elfDied world = Nothing
+      | gameOver world = Just (round * sumHp world)
+      | otherwise = case step world of
+                      Left world' | elfDied world' -> Nothing
+                      Left world' -> Just (round * sumHp world')
+                      Right world' -> go (round + 1) world'
+
+    elfDied = not . all alive . filter elf . units
+
 main = do
     input <- readFile "input.txt"
     let world = parse input
 
     -- Part 1
     print $ run world
+
+    -- Part 2
+    print $ fromJust $ getFirst $ foldMap (First . run2 . modifyElfAttackPower world) [4..]
