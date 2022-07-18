@@ -15,9 +15,9 @@ import qualified Data.Set as Set
 
 type Pos = (Int, Int)
 
--- adjacent (immediately up, down, left, or right)
+-- Adjacent squares in reading order (immediately up, left, right, down)
 adjacent :: Pos -> [Pos]
-adjacent (r, c) = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)]
+adjacent (r, c) = [(r - 1, c), (r, c - 1), (r, c + 1), (r + 1, c)]
 
 data Unit = Unit
     { unitId :: Int
@@ -180,7 +180,7 @@ bfs world start = go [(start, (0, Nothing))] mempty
         | otherwise = (pos, (dist, prev)) : go (queue <> next (pos, (dist, prev))) (Set.insert pos seen)
 
     next :: (Pos, (Int, Maybe Pos)) -> [(Pos, (Int, Maybe Pos))]
-    next (pos, (dist, prev)) = [(pos', (dist + 1, Just pos)) | pos' <- sort (adjacent pos)]
+    next (pos, (dist, prev)) = [(pos', (dist + 1, Just pos)) | pos' <- adjacent pos]
 
 gameOver world = null elves || null goblins
   where
@@ -211,6 +211,8 @@ run2 = go 0
 
     elfDied = not . all alive . filter elf . units
 
+-- 181522
+-- 68324
 main = do
     input <- readFile "input.txt"
     let world = parse input
