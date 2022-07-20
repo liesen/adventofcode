@@ -19,7 +19,7 @@ target_x, target_y = 8, 713
 
 
 def normalize(x):
-        return (x + depth) % 20183
+    return (x + depth) % 20183
 
 @cache
 def get_erosion_level(x, y):
