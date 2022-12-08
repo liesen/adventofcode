@@ -24,7 +24,7 @@ print(len(visible))
 # Part 2
 from math import prod
 
-def count_smaller(h, it):
+def viewing_distance(h, it):
     ans = 0
 
     for x in it:
@@ -38,10 +38,10 @@ def count_smaller(h, it):
 
 scenic_scores = {
     (r, c): prod([
-        count_smaller(h, (trees[(rr, c)] for rr in range(r - 1, -1, -1))), # up
-        count_smaller(h, (trees[(rr, c)] for rr in range(r + 1, num_rows))),  # down
-        count_smaller(h, (trees[(r, cc)] for cc in range(c - 1, -1, -1))),  # left
-        count_smaller(h, (trees[(r, cc)] for cc in range(c + 1, num_cols)))  # right
+        viewing_distance(h, (trees[(rr, c)] for rr in range(r - 1, -1, -1))), # up
+        viewing_distance(h, (trees[(rr, c)] for rr in range(r + 1, num_rows))),  # down
+        viewing_distance(h, (trees[(r, cc)] for cc in range(c - 1, -1, -1))),  # left
+        viewing_distance(h, (trees[(r, cc)] for cc in range(c + 1, num_cols)))  # right
     ])
     for (r, c), h in trees.items()
 }
