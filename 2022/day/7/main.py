@@ -16,6 +16,14 @@ class Path:
         assert self.path != "/"
         return Path(self.path[0:self.path.rindex('/')])
 
+    def cd(self, dirname):
+        if dirname.startswith("/"):
+            return Path(dirname)
+        elif dirname == "..":
+            return pwd.popd()
+        else:
+            return pwd.pushd(dirname)
+
 
 @dataclass(frozen=True)
 class Dir:
@@ -30,10 +38,10 @@ class File:
 
 # File tree
 tree = defaultdict(set)
+pwd = root = Path("/")
 
 
 with open("input.txt") as f:
-    pwd = root = Path("/")
     lines = [ln.strip() for ln in f]
     i = 0
 
@@ -42,14 +50,7 @@ with open("input.txt") as f:
 
         if ln.startswith("$ cd "):
             dirname = ln[len("$ cd "):]
-
-            if dirname.startswith("/"):
-                pwd = Path(dirname)
-            elif dirname == "..":
-                pwd = pwd.popd()
-            else:
-                pwd = pwd.pushd(dirname)
-
+            pwd = pwd.cd(dirname)
             i += 1
         elif ln == "$ ls":
             i += 1
@@ -69,7 +70,7 @@ with open("input.txt") as f:
 
 def du(tree):
     from functools import cache
-    
+
     @cache
     def du_entry(parent_path, entry):
         if isinstance(entry, File):
@@ -94,7 +95,6 @@ print(sum(n for n in disk_usage.values() if n <= 100_000))
 
 # Part 2
 total_size = disk_usage[root]
-unused = 70_000_000 - total_size
 
 print(
     next(
