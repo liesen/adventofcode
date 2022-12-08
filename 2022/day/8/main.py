@@ -24,16 +24,18 @@ print(len(visible))
 # Part 2
 from math import prod
 
-def viewing_distance(h, it):
-    ans = 0
 
+def takewhile_inclusive(p, it):
     for x in it:
-        if x >= h:
-            return ans + 1
+        if not p(x):
+            yield x
+            break
 
-        ans += 1
+        yield x
 
-    return ans
+
+def viewing_distance(h, it):
+    return sum(1 for _ in takewhile_inclusive(lambda x: x < h, it))
 
 
 scenic_scores = {
