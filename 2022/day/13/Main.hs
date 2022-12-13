@@ -1,5 +1,6 @@
 import Control.Monad
 import Data.Char
+import Data.Graph
 import Data.List (intercalate)
 import Data.Maybe
 import Data.Monoid
@@ -23,8 +24,8 @@ parsePacket = packet
 parsePacketPair :: ReadP (Packet, Packet)
 parsePacketPair = (,) <$> parsePacket <*> (char '\n' *> parsePacket)
 
-ordered :: Packet -> Packet -> Maybe Bool
-ordered a b = getFirst (ordered' a b)
+ordered :: Packet -> Packet -> Bool
+ordered a b = fromMaybe (error "bad input") $ getFirst $ ordered' a b
 
 ordered' :: Packet -> Packet -> First Bool
 ordered' (Value left) (Value right) =
@@ -43,4 +44,12 @@ main = do
     input <- readFile "input.txt"
     let [(pairs, "")] = readP_to_S ((parsePacketPair `sepBy` string "\n\n") <* skipSpaces <* eof) input
 
-    print $ sum [i | (i, (a, b)) <- zip [1..] pairs, fromMaybe False (ordered a b)]
+    -- Part 1
+    print $ sum [i | (i, (a, b)) <- zip [1..] pairs, ordered a b]
+
+    -- Part 2
+    let dividers = [List [List [Value 2]], List [List [Value 6]]]
+        packets = zip [1..] (concat [[a, b] | (a, b) <- pairs]) ++ zip [-1, -2..] dividers  -- Dividers have negative keys
+        (graph, nodeFromVertex) = graphFromEdges' [(a, i, [j | (j, b) <- packets, j /= i, ordered a b]) | (i, a) <- packets]
+
+    print $ product [i | (i, (_, key, _)) <- zip [1..] (map nodeFromVertex (topSort graph)), key < 0]
