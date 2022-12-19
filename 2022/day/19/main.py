@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Dict
 import re
 
 
@@ -76,10 +75,10 @@ def solve(bp: Blueprint, t: int):
 
     def dp(t: int, robots: Resources, resources: Resources):
         assert (
-            resources.ore >= 0 and
-            resources.clay >= 0 and
-            resources.obsidian >= 0 and
-            resources.geode >= 0
+            resources.ore >= 0
+            and resources.clay >= 0
+            and resources.obsidian >= 0
+            and resources.geode >= 0
         )
 
         if t == 0:
@@ -99,7 +98,10 @@ def solve(bp: Blueprint, t: int):
 
         DP[key] = a = max(
             dp(t - 1, robots + new_robot, resources + robots - robot_cost)
-            for new_robot, robot_cost in list(bp.items().items()) + [(Resources(0, 0, 0, 0), Resources(0, 0, 0, 0))]
+            for new_robot, robot_cost in (
+                list(bp.items().items())
+                + [(Resources(0, 0, 0, 0), Resources(0, 0, 0, 0))]
+            )
             if robot_cost <= resources
         )
         return a
@@ -112,9 +114,15 @@ with open("input.txt") as f:
     ans2 = 1
 
     for ln in f:
-        bp_id, ore_robot_ore_cost, clay_robot_ore_cost, \
-        obsidian_robot_ore_cost, obsidian_robot_clay_cost, \
-        geode_robot_ore_cost, geode_robot_obsidian_cost = map(int, re.findall("\d+", ln))
+        (
+            bp_id,
+            ore_robot_ore_cost,
+            clay_robot_ore_cost,
+            obsidian_robot_ore_cost,
+            obsidian_robot_clay_cost,
+            geode_robot_ore_cost,
+            geode_robot_obsidian_cost,
+        ) = map(int, re.findall(r"\d+", ln))
         bp = Blueprint(
             Resources(ore_robot_ore_cost, 0, 0, 0),
             Resources(clay_robot_ore_cost, 0, 0, 0),
@@ -128,4 +136,3 @@ with open("input.txt") as f:
 
 print(ans1)
 print(ans2)
-
