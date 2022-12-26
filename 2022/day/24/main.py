@@ -32,6 +32,26 @@ def blizzard_fn(p, dp):
 
 blizzard_fns = [blizzard_fn(p, dp) for p, dp in blizzard.items()]
 
+# Blizzards moving horizontally on row @y@
+row_fns = {
+    y: [
+        blizzard_fn(p, dp)
+        for p, dp in blizzard.items()
+        if p[0] == y and dp[1]
+    ]
+    for y in range(num_rows)
+}
+
+# Blizzards moving vertically on column @x@
+col_fns = {
+    x: [
+        blizzard_fn(p, dp)
+        for p, dp in blizzard.items()
+        if p[1] == x and dp[0]
+    ]
+    for x in range(num_cols)
+}
+
 # Part 1
 start = (-1, 0)
 end = (num_rows, num_cols - 1)
@@ -41,6 +61,7 @@ maxn = 0
 
 while queue:
     n, p = queue.popleft()
+    y, x = p
 
     if n > maxn:
         maxn = n
@@ -51,14 +72,16 @@ while queue:
         break
 
     # Check if we're in a blizzard
-    if any(fn(n) == p for fn in blizzard_fns):
+    if (
+        any(fn(n) == p for fn in row_fns.get(y, []))
+        or any(fn(n) == p for fn in col_fns.get(x, []))
+    ):
         continue
 
     if (n, p) in seen:
         continue
 
     seen.add((n, p))
-    y, x = p
 
     # Wait at current position
     queue.append((n + 1, p))
