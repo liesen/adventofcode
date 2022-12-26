@@ -30,10 +30,8 @@ def blizzard_fn(p, dp):
     dy, dx = dp
     return cache(lambda t: ((y + dy * t) % num_rows, (x + dx * t) % num_cols))
 
-blizzard_fns = [blizzard_fn(p, dp) for p, dp in blizzard.items()]
-
 # Blizzards moving horizontally on row @y@
-row_fns = {
+blizzard_row_fns = {
     y: [
         blizzard_fn(p, dp)
         for p, dp in blizzard.items()
@@ -43,7 +41,7 @@ row_fns = {
 }
 
 # Blizzards moving vertically on column @x@
-col_fns = {
+blizzard_col_fns = {
     x: [
         blizzard_fn(p, dp)
         for p, dp in blizzard.items()
@@ -52,47 +50,52 @@ col_fns = {
     for x in range(num_cols)
 }
 
-# Part 1
 start = (-1, 0)
 end = (num_rows, num_cols - 1)
-queue = deque([(0, start)])
-seen = set()
-maxn = 0
 
-while queue:
-    n, p = queue.popleft()
-    y, x = p
+def solve(start, end, t0=0):
+    queue = deque([(t0, start)])
+    seen = set()
 
-    if n > maxn:
-        maxn = n
-        print(maxn)
+    while queue:
+        n, p = queue.popleft()
+        y, x = p
 
-    if p == end:
-        print(n)
-        break
+        if p == end:
+            return n
 
-    # Check if we're in a blizzard
-    if (
-        any(fn(n) == p for fn in row_fns.get(y, []))
-        or any(fn(n) == p for fn in col_fns.get(x, []))
-    ):
-        continue
-
-    if (n, p) in seen:
-        continue
-
-    seen.add((n, p))
-
-    # Wait at current position
-    queue.append((n + 1, p))
-
-    for dy, dx in zip([-1, 1, 0, 0], [0, 0, -1, 1]):
-        yy, xx = y + dy, x + dx
-        pp = (yy, xx)
-
+        # Check if we're in a blizzard
         if (
-            (0 <= yy < num_rows and 0 <= xx < num_cols)
-            or pp == end  # Allow reaching the end
+            any(fn(n) == p for fn in blizzard_row_fns.get(y, []))
+            or any(fn(n) == p for fn in blizzard_col_fns.get(x, []))
         ):
-            queue.append((n + 1, pp))
+            continue
+
+        if (n, p) in seen:
+            continue
+
+        seen.add((n, p))
+
+        # Wait at current position
+        queue.append((n + 1, p))
+
+        for dy, dx in zip([-1, 1, 0, 0], [0, 0, -1, 1]):
+            yy, xx = y + dy, x + dx
+            pp = (yy, xx)
+
+            if (
+                (0 <= yy < num_rows and 0 <= xx < num_cols)
+                or pp == end  # Allow reaching the end
+            ):
+                queue.append((n + 1, pp))
+
+    raise Exception("No path found")
+
+# Part 1
+ans1 = solve(start, end, 0)
+print(ans1)
+
+# Part 2
+ans2 = solve(start, end, solve(end, start, ans1))
+print(ans2)
 
