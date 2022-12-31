@@ -22,11 +22,10 @@ print(sum(q not in droplet_cubes for p in droplet_cubes for q in adj(p)))
 
 # Part 2
 
-# Flood fill from outside the droplet to find all air cubes then check which
-# air cube faces intersects with droplet cube faces
-xs = set(x for x, y, z in droplet_cubes)
-ys = set(y for x, y, z in droplet_cubes)
-zs = set(z for x, y, z in droplet_cubes)
+# Flood fill from outside the droplet to find all air cubes
+xs = {x for x, y, z in droplet_cubes}
+ys = {y for x, y, z in droplet_cubes}
+zs = {z for x, y, z in droplet_cubes}
 
 xmax = max(xs)
 ymax = max(ys)
@@ -44,6 +43,7 @@ queue = deque([air_cube])
 while queue:
     x, y, z = p = queue.popleft()
 
+    # Stay inside bounding box
     if not (
         xmin - 1 <= x <= xmax + 1
         and ymin - 1 <= y <= ymax + 1
@@ -60,15 +60,5 @@ while queue:
     air_cubes.add(p)
     queue.extend(adj(p))
 
-def faces(p):
-    x, y, z = p
-    yield (x - .5, y, z)
-    yield (x + .5, y, z)
-    yield (x, y - .5, z)
-    yield (x, y + .5, z)
-    yield (x, y, z - .5)
-    yield (x, y, z + .5)
-
-droplet_faces = set(f for p in droplet_cubes for f in faces(p))
-air_faces = set(f for p in air_cubes for f in faces(p))
-print(len(droplet_faces & air_faces))
+# Check which air cube faces intersects with droplet cube faces
+print(sum(q in droplet_cubes for p in air_cubes for q in adj(p)))
