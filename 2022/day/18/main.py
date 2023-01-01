@@ -61,4 +61,4 @@ while queue:
     queue.extend(adj(p))
 
 # Check which air cube faces intersects with droplet cube faces
-print(sum(q in droplet_cubes for p in air_cubes for q in adj(p)))
+print(sum(q in air_cubes for p in droplet_cubes for q in adj(p)))
