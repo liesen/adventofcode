@@ -1,10 +1,11 @@
+from collections import defaultdict, deque
 from functools import cache
 
 
 AA = 0
 valves = []
 
-with open("input.txt") as f:
+with open(0) as f:
     for ix, ln in enumerate(f):
         i = len("Valve ")
         j = ln.index(" ", i)
@@ -15,7 +16,7 @@ with open("input.txt") as f:
 
         if ln.startswith("; tunnels lead to valves ", j):
             i = j + len("; tunnels lead to valves ")
-            neighbors = ln[i:].rstrip().split(', ')
+            neighbors = ln[i:].rstrip().split(", ")
         elif ln.startswith("; tunnel leads to valve ", j):
             i = j + len("; tunnel leads to valve ")
             neighbors = [ln[i:].rstrip()]
@@ -28,50 +29,80 @@ with open("input.txt") as f:
             AA = 1 << ix
 
 
+assert AA, "no AA in input"
+
 # Construct adjacency graph. Convert valve "names" to bitmasks.
 G = {
     key: {
-        neighbor_mask
+        (1, neighbor_mask)
         for neighbor_mask, neighbor, _, _ in valves
         if neighbor in neighbors
     }
     for key, valve, flow_rate, neighbors in valves
 }
 flow_rates = {mask: flow_rate for mask, valve, flow_rate, neighbors in valves}
-ALL = sum(G)
 
+# Compress graph, removing edges between valves with no flow rate
+G2 = defaultdict(dict)
+
+for src, tunnels in G.items():
+    queue = deque(tunnels)
+    seen = set([src])
+
+    while queue:
+        cost, v = queue.popleft()
+
+        if v in seen:
+            continue
+
+        seen.add(v)
+
+        if flow_rates[v]:
+            G2[src][v] = cost
+
+        for step_cost, w in G[v]:
+            queue.append((cost + step_cost, w))
+
+# All valves left to open
+queue = sum(valve for valve, flow_rate in flow_rates.items() if flow_rate)
 
 # Part 1
-
-# Solve using dynamic programming
-memo = {}
-
-def dp1(t, valve, opened, pressure):
-    if t >= 30:
-        return 0
-
-    if opened == ALL:
-        return pressure * (30 - t)
-
-    memo_key = (t, valve, opened)
-
-    if memo_key in memo:
-        return memo[memo_key]
-
-    # Move to another valve
-    res = max(
-        pressure + dp1(t + 1, v, opened, pressure)
-        for v in G[valve]
+@cache
+def part1(t, pos, queue):
+    return max(
+        (
+            (
+                flow_rates[new_pos] * (t - dt - 1)
+                + part1(t - dt - 1, new_pos, queue - new_pos)
+            )
+            for new_pos in G2
+            if new_pos & queue
+            for dt in [G2[pos][new_pos]]
+            if dt < t
+        ),
+        default=0,
     )
 
-    # Open valve unless opened. Skip valves that does not have any flow rate.
-    if flow_rates[valve] and not (opened & valve):
-        res = max(
-            res,
-            pressure + dp1(t + 1, valve, opened | valve, pressure + flow_rates[valve])
-        )
+print(part1(30, AA, queue))
 
-    memo[memo_key] = res
-    return res
+# Part 2
+def part2(t, pos, queue):
+    return max(
+        part1(26, AA, queue), # Elephant opens remaining valves
+        max(
+            (
+                (
+                    flow_rates[new_pos] * (t - dt - 1)
+                    + part2(t - dt - 1, new_pos, queue - new_pos)
+                )
+                for new_pos in G2
+                if new_pos & queue
+                for dt in [G2[pos][new_pos]]
+                if dt < t  # Must have enough time
+            ),
+            default=0,
+        ),
+    )
 
-print(dp1(0, AA, 0, 0))
+print(part2(26, AA, queue))
+
