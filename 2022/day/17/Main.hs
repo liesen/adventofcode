@@ -1,10 +1,12 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-import Control.Monad
-import Data.Set qualified as Set
-import Data.Set (Set)
-import Data.Foldable
+{-# LANGUAGE NumericUnderscores, ImportQualifiedPost #-}
 import Control.Arrow
-import Data.Maybe
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Set (Set)
+import Data.Set qualified as Set
+
+
+example = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>"
 
 type Rocks = Set (Int, Int)
 
@@ -45,7 +47,6 @@ moveDown rocks shape@(Shape name s)
     | otherwise = pure shape'
   where
     s' = Set.map (first (+ (-1))) s
-    ymin' = minimum (Set.map fst s')
     shape' = Shape name s'
 
 move rocks shape@(Shape name s) (x:xs) =
@@ -62,10 +63,17 @@ adjust rocks shape@(Shape name s) =
     Shape name $ Set.map (((+ yfloor) . (+ ymin) . (+ 3) . (+ 1)) *** (+ 2)) s
   where
     yfloor = maximum (Set.map fst rocks)
-    ymin = minimum (Set.map fst s)
+    ymin = 0 -- minimum y for all shapes is 0
 
-data State = State Rocks (Maybe RockId) String [Shape]
+data State = State
+    Rocks  -- Resting rocks
+    (Maybe RockId)  -- Last placed "piece"
+    String  -- Program (repeating!)
+    [Shape]  -- Shapes (repeating!)
 
+height (State rocks _ _ _) = maximum (Set.map fst rocks)
+
+-- Keep dropping rocks...
 run program = iterate f (State chamber Nothing (cycle program) (cycle shapes))
   where
     chamber = Set.fromList [(0, x) | x <- [0..6]] -- Add artificial floor
@@ -73,12 +81,42 @@ run program = iterate f (State chamber Nothing (cycle program) (cycle shapes))
       where
         (Shape x s', p') = move rocks (adjust rocks s) p
 
+-- Part 2: Keep track of the last piece dropped and the upper 20 (10 didn't
+-- work) resting rocks
+megarun = go mempty 0 0 . run
+
+rep (State rocks (Just x) _ _) = (x, crust)
+  where
+    ymax = maximum (Set.map fst rocks)
+    crust = Set.map (first (ymax -)) $ Set.filter (\(y, x) -> ymax - y <= 20) rocks
+
+go seen t yskip [] = error "impossible"
+go seen t yskip ((State _ Nothing _ _):ss) = go seen (t + 1) yskip ss
+go seen t yskip (s:ss)
+    | t > bigT = error "overshot"
+    | t == bigT = ymax + yskip
+    | Just (t_, ymax_) <- Map.lookup r seen =
+        -- Same rep was found at t_: we have found a cycle!
+        let dt = t - t_
+            dy = ymax - ymax_
+            n = (bigT - t) `div` dt
+            t' = t + n * dt
+        in if t' <= bigT
+            then go (Map.insert r (t', ymax) seen) (t' + 1) (yskip + n * dy) ss
+            else go seen' (t + 1) yskip ss
+    | otherwise = go seen' (t + 1) yskip ss
+  where
+    ymax = height s
+    r = rep s
+    seen' = Map.insert r (t, ymax) seen
+    bigT = 1_000_000_000_000
+
 main = do
     input <- readFile "input.txt"
     let program = head (lines input)
 
-    -- Part 2
-    let State rocks1 _ _ _ = run program !! 2022
-        ans1 = maximum (Set.map fst rocks1)
-    print ans1
+    -- Part 1
+    print $ height $ run program !! 2022
 
+    -- Part 2
+    print $ megarun program
