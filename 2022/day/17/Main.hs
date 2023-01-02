@@ -41,8 +41,7 @@ hmove rocks shape@(Shape name s) dx
         xmax = maximum (Set.map snd s')
 
 moveDown rocks shape@(Shape name s)
-    | ymin' == 0 = fail "hit the floor"
-    | not (Set.disjoint s' rocks) = fail "hit resting rock"
+    | not (Set.disjoint s' rocks) = fail "hit floor or resting rock"
     | otherwise = pure shape'
   where
     s' = Set.map (first (+ (-1))) s
@@ -62,15 +61,14 @@ move rocks shape@(Shape name s) (x:xs) =
 adjust rocks shape@(Shape name s) =
     Shape name $ Set.map (((+ yfloor) . (+ ymin) . (+ 3) . (+ 1)) *** (+ 2)) s
   where
-    yfloor = fromMaybe 0 (Set.lookupMax (Set.map fst rocks))
-    ymin = Set.findMin (Set.map fst s)
-
-r0 = Set.fromList [(0, x) | x <- [0..6]]
+    yfloor = maximum (Set.map fst rocks)
+    ymin = minimum (Set.map fst s)
 
 data State = State Rocks (Maybe RockId) String [Shape]
 
-run program = iterate f (State r0 Nothing (cycle program) (cycle shapes))
+run program = iterate f (State chamber Nothing (cycle program) (cycle shapes))
   where
+    chamber = Set.fromList [(0, x) | x <- [0..6]] -- Add artificial floor
     f (State rocks _ p (s:ss)) = State (rocks <> s') (Just x) p' ss
       where
         (Shape x s', p') = move rocks (adjust rocks s) p
