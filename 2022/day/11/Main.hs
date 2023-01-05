@@ -1,12 +1,12 @@
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-import Text.ParserCombinators.ReadP
+{-# LANGUAGE Strict, ImportQualifiedPost, RecordWildCards #-}
+import Control.Monad
 import Data.Char
 import Data.Functor
-import Data.Map qualified as Map
+import Data.List
 import Data.Map (Map)
-
-import Debug.Trace
+import Data.Map.Strict qualified as Map
+import Data.Ord
+import Text.ParserCombinators.ReadP
 
 
 data Operation
@@ -16,16 +16,17 @@ data Operation
 
 data Val
     = Old
-    | Lit Int
+    | Lit Integer
   deriving (Show)
 
 data Monkey = Monkey
     { index :: Int,
-      items :: [Int],
+      items :: [Integer],
       operation :: Operation,
-      test :: Int,
+      test :: Integer,
       ifTrue :: Int,
-      ifFalse :: Int
+      ifFalse :: Int,
+      inspections :: Int
     }
   deriving (Show)
 
@@ -36,9 +37,10 @@ parseMonkey = do
     test <- string "  Test: divisible by " *> num <* char '\n'
     ifTrue <- string "    If true: throw to monkey " *> num <* char '\n'
     ifFalse <- string "    If false: throw to monkey " *> num
+    let inspections = 0
     return Monkey{..}
 
-num :: ReadP Int
+num :: (Read a, Num a) => ReadP a
 num = read <$> munch1 isDigit
 
 parseOperation :: ReadP Operation
@@ -51,47 +53,48 @@ add = Add <$> (string "+ " *> val)
 val :: ReadP Val
 val = (string "old" $> Old) +++ (Lit <$> num)
 
-eval :: Operation -> Int -> Int
+eval :: Operation -> Integer -> Integer
 eval (Mul Old) old = old * old
 eval (Mul (Lit n)) old = old * n
 eval (Add Old) old = old + old
 eval (Add (Lit n)) old = old + n
 
-monkeyRound :: [Int] -> Map Int Monkey -> Map Int Monkey
-monkeyRound order monkeys = foldl monkeyTick monkeys order
+monkeyRound :: (Integer -> Integer) -> [Int] -> Map Int Monkey -> Map Int Monkey
+monkeyRound relief order monkeys = foldl (monkeyTick relief) monkeys order
 
-monkeyTick :: Map Int Monkey -> Int -> Map Int Monkey
-monkeyTick monkeys i =
-    -- trace ("Monkey " ++ show i ++ ":") $
-    Map.adjust (\monkey' -> monkey' { items = [] }) i $ foldl (monkeyItemTick monkey) monkeys items
+monkeyTick :: (Integer -> Integer) -> Map Int Monkey -> Int -> Map Int Monkey
+monkeyTick relief monkeys i =
+    Map.adjust adjust i $ foldl (monkeyItemTick relief monkey) monkeys (items monkey)
   where
-    Just monkey@Monkey{..} = Map.lookup i monkeys
+    Just monkey = Map.lookup i monkeys
+    adjust m = m {items = [], inspections = inspections m + length (items monkey)}
 
-monkeyItemTick :: Monkey -> Map Int Monkey -> Int -> Map Int Monkey
-monkeyItemTick monkey monkeys worryLevel =
-    {-
-    traceShow monkeys $
-    trace ("  Monkey " ++ show (index monkey) ++ " inspects an item with worry level of " ++ show worryLevel ++ ".") $
-    trace ("    Worry level is set to " ++ show worryLevel' ++ ".") $
-    trace ("    Monkey gets bored with item. Worry level is divided by 3 to " ++ show worryLevel'' ++ ".") $
-    trace ("    Current worry level is " ++ (if not res then "not " else "") ++ "divisible by " ++ show (test monkey) ++ ".") $
-    trace ("    Item with worry level " ++ show worryLevel'' ++ " is thrown to monkey " ++ show target ++ ".") $
-    -}
+monkeyItemTick :: (Integer -> Integer) -> Monkey -> Map Int Monkey -> Integer -> Map Int Monkey
+monkeyItemTick relief monkey monkeys worryLevel =
     Map.adjust (\monkey' -> monkey' { items = items monkey' ++ [worryLevel'']}) target monkeys
   where
     worryLevel' = eval (operation monkey) worryLevel
-    worryLevel'' = worryLevel' `div` 3
+    worryLevel'' = relief worryLevel'
     res = worryLevel'' `mod` test monkey == 0
     target = if res then ifTrue monkey else ifFalse monkey
+
+monkeyBusiness = product . take 2 . reverse . sort . map inspections . Map.elems
 
 main = do
     input <- readFile "input.txt"
     let [(monkeys, "")] = readP_to_S (endBy parseMonkey skipSpaces <* eof) input
         indices = map index monkeys
         monkeyMap = Map.fromList (zip indices monkeys)
-        rounds = iterate (monkeyRound indices) monkeyMap
 
-    putStrLn "After round 1:"
-    print $ rounds !! 1
-    print $ rounds !! 2
-    print $ rounds !! 20
+    -- Part 1
+    let relief1 worryLevel = worryLevel `div` 3
+        monkeys1 = iterate (monkeyRound relief1 indices) monkeyMap !! 20
+
+    print $ monkeyBusiness monkeys1
+
+    -- Part 2
+    let interval = product $ map test monkeys
+        relief2 worryLevel = worryLevel `mod` interval
+        monkeys2 = iterate (monkeyRound relief2 indices) monkeyMap !! 10000
+
+    print $ monkeyBusiness monkeys2
