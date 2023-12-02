@@ -1,14 +1,16 @@
 import Data.Char (isDigit)
-import Data.Function (on)
 import Data.Functor
 import Data.List
-import Data.Maybe
+import Data.Map (Map)
+import Data.Map qualified as Map
 import Data.Ord
 import Text.ParserCombinators.ReadP
 
 data Color = Red | Green | Blue deriving (Eq, Ord, Show)
 
-newtype Round = Round [(Color, Int)] deriving (Show)
+type Cubes = Map Color Int
+
+newtype Round = Round {cubes :: Cubes} deriving (Show)
 
 data Game = Game {gameId :: Int, rounds :: [Round]} deriving (Show)
 
@@ -22,25 +24,26 @@ pnum :: ReadP Int
 pnum = read <$> munch1 isDigit
 
 pround :: ReadP Round
-pround = Round <$> sepBy1 pcube (string ", ")
+pround = Round . Map.fromListWith (+) <$> sepBy1 pcube (string ", ")
 
 pgame :: ReadP Game
 pgame = Game <$> (string "Game " *> pnum <* string ": ") <*> sepBy1 pround (string "; ")
 
-valid1 :: Game -> Bool
-valid1 = all p . rounds
-  where
-    p (Round xs) = fromMaybe 0 (lookup Red xs) <= 12 && fromMaybe 0 (lookup Green xs) <= 13 && fromMaybe 0 (lookup Blue xs) <= 14
+-- Fewest number of cubes of each color that could have been in the bag to make the game possible
+fewestPossibleCubes :: Game -> Cubes
+fewestPossibleCubes = Map.unionsWith max . map cubes . rounds
 
-fewest :: Game -> [(Color, Int)]
-fewest (Game _ rounds) = map (\((color, n) : cubes) -> (color, maximum (n : map snd cubes))) $ groupBy ((==) `on` fst) $ sortBy (comparing fst) $ concatMap (\(Round xs) -> xs) rounds
+possible game = Map.isSubmapOfBy (<=) (fewestPossibleCubes game) minimalSet
 
-power :: [(Color, Int)] -> Int
-power = product . map snd
+minimalSet :: Cubes
+minimalSet = Map.fromList [(Red, 12), (Green, 13), (Blue, 14)]
+
+power :: Cubes -> Int
+power = product
 
 main = do
   input <- readFile "input"
   let [(games, "")] = readP_to_S (endBy1 pgame skipSpaces <* eof) input
 
-  print $ sum $ map gameId $ filter valid1 games
-  print $ sum $ map (power . fewest) games
+  print $ sum $ map gameId $ filter possible games
+  print $ sum $ map (power . fewestPossibleCubes) games
