@@ -1,3 +1,4 @@
+import math
 import fileinput
 import re
 from dataclasses import dataclass
@@ -42,6 +43,24 @@ def in_range(row, col):
 part_numbers = {
     n
     for n in N
-    if any(S[r][c] in symbols for (r, c) in adjacent(n.row, n.col, n.len) if in_range(r, c))
+    if any(
+        S[r][c] in symbols for (r, c) in adjacent(n.row, n.col, n.len) if in_range(r, c)
+    )
 }
 print(sum(n.num for n in part_numbers))
+
+# Part 2
+E = {}  # Neighbor numbers for each gear
+
+for n in part_numbers:
+    for r, c in adjacent(n.row, n.col, n.len):
+        if in_range(r, c) and S[r][c] == "*":  # Gear at (r, c)
+            E.setdefault((r, c), set()).add(n)
+
+ans2 = 0
+
+for nums in E.values():
+    if len(nums) == 2:
+        ans2 += math.prod(n.num for n in nums)
+
+print(ans2)
