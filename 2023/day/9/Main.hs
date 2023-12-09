@@ -1,12 +1,11 @@
-f1 xs
-  | all (== 0) xs = 0
-  | otherwise = last xs + f1 (zipWith (-) (tail xs) xs)
+{-# LANGUAGE ViewPatterns #-}
 
-f2 xs
-  | all (== 0) xs = 0
-  | otherwise = head xs - f2 (zipWith (-) (tail xs) xs)
+extrapolate xs
+  | all (== 0) xs = (0, 0)
+  | otherwise = let (front, back) = extrapolate (zipWith (-) (tail xs) xs) in (head xs - front, last xs + back)
 
 main = do
   input <- map (map read . words) . lines <$> readFile "input"
-  print $ sum $ map f1 input
-  print $ sum $ map f2 input
+  let (sum -> ans2, sum -> ans1) = unzip $ map extrapolate input
+  print ans1
+  print ans2
