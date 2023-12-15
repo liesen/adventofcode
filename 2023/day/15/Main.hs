@@ -36,13 +36,13 @@ data Lens = Lens {lensLabel :: String, focalLength :: Int} deriving (Eq, Ord, Sh
 
 step :: Map Int [Lens] -> Step -> Map Int [Lens]
 step boxes (Dash stepLabel stepHash) = Map.adjust (filter ((/= stepLabel) . lensLabel)) stepHash boxes
-step boxes x@(Equals l f h) =
-  case Map.lookup h boxes of
-    Just lenses ->
-      case break ((== l) . lensLabel) lenses of
-        (as, b : bs) -> Map.insert h (as ++ Lens l f : bs) boxes
-        (as, []) -> Map.insert h (as ++ [Lens l f]) boxes
-    Nothing -> Map.insert h [Lens l f] boxes
+step boxes x@(Equals stepLabel focalLength stepHash) = Map.alter f stepHash boxes
+  where
+    f Nothing = Just [Lens stepLabel focalLength]
+    f (Just lenses) =
+      case break ((== stepLabel) . lensLabel) lenses of
+        (as, b : bs) -> Just (as ++ Lens stepLabel focalLength : bs)
+        (as, []) -> Just (as ++ [Lens stepLabel focalLength])
 
 focalPower boxes =
   sum
