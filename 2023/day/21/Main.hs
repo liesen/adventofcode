@@ -13,7 +13,7 @@ neighbors g (r, c) =
 steps :: Map (Int, Int) [(Int, Int)] -> (Int, Int) -> [Set (Int, Int)]
 steps g = iterate step . Set.singleton
   where
-    step = Set.fromList . concatMap (neighbors g) . Set.toList
+    step = foldMap (Set.fromList . neighbors g)
 
 main = do
   input <- readFile "input"
