@@ -1,12 +1,13 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 
 import Control.Monad
 import Data.Char
+import Data.Function (on)
 import Data.Functor
 import Data.List
 import Data.Map (Map, (!))
 import Data.Map qualified as Map
-import Debug.Trace
 import Text.ParserCombinators.ReadP
 
 type Pulse = Bool
@@ -44,33 +45,10 @@ parseModule = moduleType <*> (string " -> " *> sepBy moduleName (string ", "))
           Conjunction mempty <$> (char '&' *> moduleName)
         ]
 
-push1 (state, counter) =
-  fst $
-    until
-      (null . snd)
-      ( \((state, counter), pulses) ->
-          let (state', concat -> pulses') = mapAccumL emit state pulses
-              -- Count up the pulses
-              counter' = foldl (\(lo, hi) (_, pulse, _) -> (lo + if not pulse then 1 else 0, hi + if pulse then 1 else 0)) counter pulses
-           in ((state', counter'), pulses')
-      )
-      ((state, counter), [("button", low, "broadcaster")])
-
-push2 (state, done) =
-  fst $
-    until
-      (null . snd)
-      ( \((state, done), pulses) ->
-          let (state', concat -> pulses') = mapAccumL emit state pulses
-              done' = done || any (\(_sender, pulse, receiver) -> pulse == low && receiver == "rx") pulses
-           in ((state', done'), pulses')
-      )
-      ((state, done), [("button", low, "broadcaster")])
-
-emit state (sender, pulse, receiver) =
-  -- trace ("> " ++ sender ++ " -" ++ show pulse ++ "-> " ++ receiver) $
-  case Map.lookup receiver state of
-    Nothing -> (state, [])
+-- Update the state machine and accumulate new pulses
+emit state (src, pulse, dst) =
+  case Map.lookup dst state of
+    Nothing -> (state, []) -- Pulse sent to an untyped (noop) module
     Just (Broadcaster outs) -> (state, map ("broadcaster",pulse,) outs)
     Just (Flipflop value _ outs)
       -- If a flip-flop module receives a high pulse, it is ignored and
@@ -81,37 +59,74 @@ emit state (sender, pulse, receiver) =
       | otherwise ->
           let value' = not value
               pulse' = value'
-              state' = Map.insert receiver (Flipflop value' receiver outs) state
-           in (state', map (receiver,pulse',) outs)
+              state' = Map.insert dst (Flipflop value' dst outs) state
+           in (state', map (dst,pulse',) outs)
     Just (Conjunction memory _ outs) ->
       -- If a conjunction module remembers high pulses for all inputs, it
       -- sends a low pulse; otherwise, it sends a high pulse.
-      let memory' = Map.insert sender pulse memory
+      let memory' = Map.insert src pulse memory
           pulse' = not (and memory')
-          state' = Map.insert receiver (Conjunction memory' receiver outs) state
-       in (state', map (receiver,pulse',) outs)
+          state' = Map.insert dst (Conjunction memory' dst outs) state
+       in (state', map (dst,pulse',) outs)
 
 -- Let convolutions know what their inputs are
 rewire modules = map f modules
   where
     f (Conjunction memory name outs) = Conjunction memory' name outs
       where
-        memory' =
-          Map.fromList
-            [ (moduleName m, low)
-              | m <- modules,
-                name `elem` outputs m
-            ]
+        memory' = Map.fromList [(moduleName m, low) | m <- modules, name `elem` outputs m]
     f m = m
+
+-- Ah, push it
+push s =
+  let (s', hist, _todo) = until done propagate (s, mempty, [("button", low, "broadcaster")])
+   in (s', hist)
+  where
+    done (s, hist, todo) = null todo
+    propagate (s, hist, todo) = let (s', concat -> todo') = mapAccumL emit s todo in (s', hist <> todo, todo')
+
+-- All you fly mothers, get out on there and dance
+simulate s = iterate (\(s, _hist) -> push s) (s, [])
+
+-- Sum all the (low, high) pulses emitted each push
+pulseCounter = scanl (foldl f) (0, 0) . map snd . simulate
+  where
+    f (nlo, nhi) (_, pulse, _)
+      | pulse = (nlo, nhi + 1)
+      | otherwise = (nlo + 1, nhi)
+
+dot modules = unlines $ ["digraph M {"] ++ header ++ body ++ ["}"]
+  where
+    header = flip fmap modules $ \case
+      Broadcaster outs -> "  broadcaster [shape=doubleoctagon]"
+      Flipflop _ name outs -> "  " ++ name ++ " [shape=triangle]"
+      Conjunction _ name outs -> "  " ++ name ++ " [shape=diamond]"
+    body = flip fmap modules $ \case
+      Broadcaster outs -> "  broadcaster -> {" ++ intercalate ", " outs ++ "};"
+      Flipflop _ name outs -> "  " ++ name ++ " -> {" ++ intercalate ", " outs ++ "};"
+      Conjunction _ name outs -> "  " ++ name ++ " -> {" ++ intercalate ", " outs ++ "};"
 
 main = do
   input <- readFile "input"
   let [(modules, "")] = readP_to_S (sepBy parseModule (char '\n') <* skipSpaces <* eof) input
       modules' = rewire modules
 
-  let m = Map.fromList [(moduleName mod, mod) | mod <- modules']
-  let (_, (lows, highs)) = iterate push1 (m, (0, 0)) !! 1000
-  print $ lows * highs
+  -- Part 1
+  let s = Map.fromList [(moduleName mod, mod) | mod <- modules']
+      (nlo, nhi) = drop 1 (pulseCounter s) !! 1000  -- Drop the initial state
+  print $ nlo * nhi
 
--- Nope...
--- print $ length $ dropWhile (not . snd) $ iterate push2 (m, False)
+  -- Part 2: push it real good!
+  --
+  -- From inspection: the rx module has a single input, rx', which in turn
+  -- has four inputs. rx' is a conjunction, so for it to emit a low pulse,
+  -- all its inputs must emit a high pulse
+  let Just rx'@(Conjunction mem _ _) = find (\case (Conjunction m k ["rx"]) -> True; _ -> False) modules'
+      inputs = Map.keys mem
+
+  -- Find time until rx's inputs emits a high pulse, then when all inputs
+  -- will do that at the same time
+  let findHighPulse k =
+        let p (src, pulse, dst) = src == k && pulse == high
+         in length (takeWhile (not . any p . snd) (simulate s))
+  print $ foldl1 lcm $ map findHighPulse inputs
