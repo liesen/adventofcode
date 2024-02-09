@@ -31,9 +31,9 @@ b1-----b2 |           |
           |           | b1-----b2
  -}
 overlap (Range a1 n) b@(Range b1 m)
-  | b2 < a1 = (Nothing, [b])
-  | b1 <= a2 = (Just (Range (max a1 b1) (min a2 b2 - max a1 b1)), filter nonEmpty [Range (min b1 a1) (a1 - min b1 a1), Range a2 (b2 - a2)])
-  | a2 < b1 = (Nothing, [b])
+  | b2 < a1 = ([b], Nothing)
+  | b1 <= a2 = (filter nonEmpty [Range (min b1 a1) (a1 - min b1 a1), Range a2 (b2 - a2)], Just (Range (max a1 b1) (min a2 b2 - max a1 b1)))
+  | a2 < b1 = ([b], Nothing)
   where
     a2 = a1 + n
     b2 = b1 + m
@@ -69,14 +69,12 @@ number = read <$> munch1 isDigit
 run :: [Range] -> Map -> [Range]
 run as (Map _ tfs) = let (as', bss) = mapAccumL step as tfs in as' ++ concat bss
 
-step as t = let (as', bs) = unzip (map (`trans` t) as) in (concat as', concat bs)
+step as t = let (as', bs) = unzip (map (`trans` t) as) in (concat as', catMaybes bs)
 
 trans a (Trans dest (Range start n)) =
     case Range start n `overlap` a of
-      (Just (Range x m), as) ->
-        let s' = Range (dest + x - start) m
-        in (as, [s'])
-      (Nothing, as) -> (as, [])
+      (as, Just (Range x m)) -> let s' = Range (dest + x - start) m in (as, Just s')
+      (as, Nothing) -> (as, Nothing)
 
 main = do
   input <- readFile "input"
