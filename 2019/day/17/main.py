@@ -1,7 +1,5 @@
-from collections import deque
 from itertools import chain
 from intcode import Intcode
-import numpy as np
 
 
 with open('input.txt') as fp:

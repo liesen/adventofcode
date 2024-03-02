@@ -2,7 +2,7 @@ from intcode import Intcode
 from itertools import chain, combinations
 import networkx as nx
 from networkx.drawing.nx_agraph import write_dot
-from collections import deque, namedtuple
+from collections import namedtuple
 
 
 with open('input.txt') as fp:

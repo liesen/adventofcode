@@ -1,4 +1,3 @@
-from collections import deque, namedtuple
 from itertools import permutations
 from functools import reduce
 from intcode import Intcode

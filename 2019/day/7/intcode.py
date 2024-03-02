@@ -66,7 +66,7 @@ class Intcode:
             elif opcode == 99:
                 self.halt = True
             else:
-                raise Exception(f'unknown opcode: {opcode} at pc = {pc}')
+                raise Exception(f'unknown opcode: {opcode} at pc = {self.pc}')
 
     @property
     def need_input(self):

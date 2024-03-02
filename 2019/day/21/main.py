@@ -1,5 +1,4 @@
 from intcode import Intcode
-from itertools import chain
 
 
 with open('input.txt') as fp:
