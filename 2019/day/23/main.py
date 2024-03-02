@@ -2,8 +2,8 @@ from intcode import Intcode
 from collections import deque
 
 
-with open('input.txt') as fp:
-    code = [int(x) for x in fp.read().split(',')]
+with open("input.txt") as fp:
+    code = [int(x) for x in fp.read().split(",")]
 
 
 q = deque()
@@ -15,9 +15,9 @@ for i in range(50):
     prog.run([i, -1])
 
     while prog.outputs:
-        q.append([prog.outputs.popleft(),
-                  prog.outputs.popleft(),
-                  prog.outputs.popleft()])
+        q.append(
+            [prog.outputs.popleft(), prog.outputs.popleft(), prog.outputs.popleft()]
+        )
 
 # Part 1
 while q:
@@ -34,9 +34,9 @@ while q:
     prog.run(payload)
 
     while prog.outputs:
-        q.append([prog.outputs.popleft(),
-                  prog.outputs.popleft(),
-                  prog.outputs.popleft()])
+        q.append(
+            [prog.outputs.popleft(), prog.outputs.popleft(), prog.outputs.popleft()]
+        )
 
 print(ans)
 
@@ -51,7 +51,7 @@ while True:
         if nat_y in nat_ys:
             ans = nat_y
             break
-        
+
         nat_ys.add(nat_y)
         q.append([0, nat_x, nat_y])
 
@@ -68,8 +68,8 @@ while True:
         prog.run(payload)
 
         while prog.outputs:
-            q.append([prog.outputs.popleft(),
-                    prog.outputs.popleft(),
-                    prog.outputs.popleft()])
+            q.append(
+                [prog.outputs.popleft(), prog.outputs.popleft(), prog.outputs.popleft()]
+            )
 
 print(ans)

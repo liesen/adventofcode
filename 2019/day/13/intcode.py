@@ -1,5 +1,6 @@
 from collections import defaultdict, deque
 
+
 class Intcode:
     def __init__(self, prog, inputs=[]):
         self.prog = prog
@@ -39,10 +40,10 @@ class Intcode:
 
     def step(self):
         if self.halt:
-            raise Exception('halted')
+            raise Exception("halted")
 
         if self.need_input:
-            raise Exception('need input')
+            raise Exception("need input")
 
         def param(i):
             mode = (self.mem[self.pc] // (10 * 10**i)) % 10
@@ -96,7 +97,7 @@ class Intcode:
         elif opcode == 99:
             self.halt = True
         else:
-            raise Exception(f'unknown opcode: {opcode} at pc = {self.pc}')
+            raise Exception(f"unknown opcode: {opcode} at pc = {self.pc}")
 
     @property
     def need_input(self):

@@ -1,7 +1,7 @@
 from intcode import Intcode
 
-with open('input.txt') as fp:
-    prog = Intcode([int(x) for ln in fp for x in ln.split(',')])
+with open("input.txt") as fp:
+    prog = Intcode([int(x) for ln in fp for x in ln.split(",")])
 
 prog.run()
 num_blocks = 0

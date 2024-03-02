@@ -2,21 +2,22 @@ from intcode import Intcode
 from collections import deque
 import numpy as np
 
-with open('input.txt') as fp:
-    prog = Intcode([int(x) for ln in fp for x in ln.split(',')])
+with open("input.txt") as fp:
+    prog = Intcode([int(x) for ln in fp for x in ln.split(",")])
 
 # Movement commands
 DIR = {
     1: np.array([0, -1]),
     2: np.array([0, 1]),
     3: np.array([-1, 0]),
-    4: np.array([1, 0])
+    4: np.array([1, 0]),
 }
 
 # Reverse commands
 REV = {1: 2, 2: 1, 3: 4, 4: 3}
 
 state = {}
+
 
 def explore(pos):
     global prog, state
@@ -48,7 +49,7 @@ def explore(pos):
             explore(new_pos)
             prog.inputs.append(REV[cmd])
             prog.run()
-        
+
 
 # Explore the space using DFS
 explore(np.array([0, 0]))
@@ -67,10 +68,10 @@ for (x, y), z in state.items():
         O = (x, y)
 
 tilemap = {
-    -1: ' ',  # unexplored
-    0: '#',  # wall
-    1: '.',  # not wall
-    2: 'O'  # oxygen tank
+    -1: " ",  # unexplored
+    0: "#",  # wall
+    1: ".",  # not wall
+    2: "O",  # oxygen tank
 }
 
 # Print state

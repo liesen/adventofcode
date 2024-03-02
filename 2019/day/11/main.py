@@ -1,8 +1,9 @@
 import numpy as np
 from intcode import Intcode
 
-with open('input.txt') as fp:
-    code = [int(x) for ln in fp for x in ln.split(',')]
+with open("input.txt") as fp:
+    code = [int(x) for ln in fp for x in ln.split(",")]
+
 
 # Part 1
 def paint(code, panels={}):
@@ -19,18 +20,19 @@ def paint(code, panels={}):
         panels[tuple(p)] = new_color
 
         turn = prog.outputs.popleft()
-        
+
         if turn == 0:  # left
             a = np.matmul(a, np.array([[0, -1], [1, 0]]))
         elif turn == 1:  # right
             a = np.matmul(a, np.array([[0, 1], [-1, 0]]))
         else:
-            raise Exception(f'illegal turn: {turn}')
+            raise Exception(f"illegal turn: {turn}")
 
         # move
         p += a
 
     return panels
+
 
 print(len(paint(code)))
 
@@ -40,5 +42,12 @@ paint(code, panels)
 xs = [x for x, y in panels.keys()]
 ys = [y for x, y in panels.keys()]
 
-print('\n'.join(''.join('#' if panels.get((x, y), 0) == 1 else ' ' for x in range(min(xs), max(xs) + 1)) \
-      for y in range(min(ys), max(ys) + 1)))
+print(
+    "\n".join(
+        "".join(
+            "#" if panels.get((x, y), 0) == 1 else " "
+            for x in range(min(xs), max(xs) + 1)
+        )
+        for y in range(min(ys), max(ys) + 1)
+    )
+)

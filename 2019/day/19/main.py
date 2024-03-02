@@ -1,8 +1,8 @@
 from intcode import Intcode
 
 
-with open('input.txt') as fp:
-    prog = Intcode([int(x) for ln in fp for x in ln.split(',')])
+with open("input.txt") as fp:
+    prog = Intcode([int(x) for ln in fp for x in ln.split(",")])
 
 # Part 1
 ans = 0
@@ -16,12 +16,14 @@ for y in range(50):
 
 print(ans)
 
+
 # Part 2
 def test(x, y):
     global prog
     prog.reset()
     prog.run([x, y])
     return prog.outputs.pop()
+
 
 y0 = 10
 x0 = 0
@@ -41,7 +43,7 @@ s = 0
 
 while s < 100:
     y0 += 1
-    
+
     while test(x1, y0) == 1:
         x1 += 1
 
