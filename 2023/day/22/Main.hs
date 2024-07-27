@@ -24,8 +24,6 @@ xx (b1, b2) = (x b1, x b2)
 yy (b1, b2) = (y b1, y b2)
 zz (b1, b2) = (z b1, z b2)
 
--- data Bricks = Bricks (Map (V, V) Int) [(V, V)]
-
 example1 :: [Brick]
 example1 =
   [ ((1, 0, 1), (1, 2, 1)),
@@ -36,12 +34,6 @@ example1 =
     ((0, 1, 6), (2, 1, 6)),
     ((1, 1, 8), (1, 1, 9))
   ]
-
-data Step a
-  = Buried a
-  | Collision a
-  | Continue a
-  | Stop a
 
 drop :: Set V -> Brick -> Either Brick Brick
 drop bricks brick@((x1, y1, z1), (x2, y2, z2))
@@ -55,7 +47,6 @@ drop bricks brick@((x1, y1, z1), (x2, y2, z2))
 snapshot :: [(V, V)] -> String
 snapshot bricks = unlines lines
   where
-    -- fixed = Map.fromList [(p, i) | (i, bnds) <- zip ['A'..] bricks, p <- range bnds]
     xzMap =
       Map.fromList
         [ ((x, z), i) | (i, bnds) <- zip ['A' ..] bricks, (x, y, z) <- range bnds
@@ -83,13 +74,6 @@ snapshot bricks = unlines lines
     ground = replicate (xmax + 1) '-'
     xzLines = ["x/z", map intToDigit [0 .. min xmax 9]] ++ xz ++ [ground]
 
--- xyLines
-
--- yz = zipWith (\(y, z) -> '.') [0..ymax] [zmax, zmax - 1, ..0]
-
-f = sortBy (comparing (uncurry min . zz))
-
--- 1.
 settle bricks =
   let ((modified, settled), bricks') = mapAccumL go (False, mempty) $ sortBy (comparing (uncurry min . zz)) bricks
    in (modified, bricks')
@@ -99,17 +83,18 @@ settle bricks =
         Left brick' -> ((modified, Set.union settled (Set.fromList (range brick'))), brick')
         Right brick' -> go (True, settled) brick'
 
-main = do
-  let bricks = example1
-  putStrLn $ snapshot bricks
+parse = endBy1 parseBrick (char '\n') <* eof
+  where
+    parseBrick = (,) <$> parseV <*> (char '~' *> parseV)
+    parseV = (,,) <$> parseNum <*> (char ',' *> parseNum) <*> (char ',' *> parseNum)
+    parseNum = read <$> many1 (satisfy isDigit)
 
-  --
+main = do
+  input <- readFile "input"
+  let [(bricks, "")] = readP_to_S parse input
+
+  -- Settle all bricks
   let (_, bricks') = settle bricks
-  putStrLn $ snapshot bricks'
-  print $
-    length
-      [ ()
-        | brick <- bricks',
-          let (modified, _) = settle (bricks' \\ [brick]),
-          not modified
-      ]
+
+  -- Part 1
+  print $ length $ filter (\brick -> not (fst (settle (bricks' \\ [brick])))) bricks'
