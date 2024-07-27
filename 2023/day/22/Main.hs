@@ -74,15 +74,16 @@ snapshot bricks = unlines lines
     ground = replicate (xmax + 1) '-'
     xzLines = ["x/z", map intToDigit [0 .. min xmax 9]] ++ xz ++ [ground]
 
-settle bricks =
-  let ((modified, settled), bricks') = mapAccumL go (False, mempty) $ sortBy (comparing (uncurry min . zz)) bricks
-   in (modified, bricks')
+-- Settle i.e. move all bricks many steps down as possible
+--   returns whether a brick has moved and it's new position
+settle bricks = snd $ mapAccumL go mempty $ map (False,) $ sortBy (comparing (uncurry min . zz)) bricks
   where
-    go (modified, settled) brick =
+    go settled (modified, brick) =
       case Main.drop settled brick of
-        Left brick' -> ((modified, Set.union settled (Set.fromList (range brick'))), brick')
-        Right brick' -> go (True, settled) brick'
+        Left brick' -> (Set.union settled (Set.fromList (range brick')), (modified, brick'))
+        Right brick' -> go settled (True, brick')
 
+parse :: ReadP [Brick]
 parse = endBy1 parseBrick (char '\n') <* eof
   where
     parseBrick = (,) <$> parseV <*> (char '~' *> parseV)
@@ -94,7 +95,10 @@ main = do
   let [(bricks, "")] = readP_to_S parse input
 
   -- Settle all bricks
-  let (_, bricks') = settle bricks
+  let bricks' = map snd $ settle bricks
 
   -- Part 1
-  print $ length $ filter (\brick -> not (fst (settle (bricks' \\ [brick])))) bricks'
+  print $ length $ filter (\brick -> not (any fst (settle (bricks' \\ [brick])))) bricks'
+
+  -- Part 2
+  print $ sum $ map (\brick -> length (filter fst (settle (bricks' \\ [brick])))) bricks'
