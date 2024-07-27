@@ -64,7 +64,6 @@ snapshot bricks = unlines lines
     yz =
       [ [fromMaybe '.' (Map.lookup (y, z) yzMap) | y <- [0 .. ymax]] | z <- [zmax, zmax - 1 .. 1]
       ]
-    -- header = unwords (replicate 2
     lines =
       zipWith3
         (\xz yz zi -> unwords [xz, yz, show zi])
