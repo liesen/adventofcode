@@ -1,15 +1,14 @@
-from typing import Tuple
 import fileinput
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class Hailstone:
-    pos: Tuple[int, int, int]
-    vel: Tuple[int, int, int]
+    pos: tuple[int, int, int]
+    vel: tuple[int, int, int]
 
 
-hailstones = []
+hailstones: list[Hailstone] = []
 
 with fileinput.input("input") as f:
     for ln in f:
@@ -26,41 +25,38 @@ for i, a in enumerate(hailstones):
         if i >= j:
             continue
 
-        x1, y1, _z1 = a.pos
-        x2 = x1 + a.vel[0]
-        y2 = y1 + a.vel[1]
+        px1, py1, pz1 = a.pos
+        vx1, vy1, vz1 = a.vel
+        px2 = px1 + vx1
+        py2 = py1 + vy1
 
-        x3, y3, _z3 = b.pos
-        x4 = x3 + b.vel[0]
-        y4 = y3 + b.vel[1]
+        px3, py3, pz3 = b.pos
+        vx3, vy3, vz3 = b.vel
+        px4 = px3 + vx3
+        py4 = py3 + vy3
 
-        if (x1 - x2) * (y3 - y4) == (y1 - y2) * (x3 - x4):
+        denominator = (px1 - px2) * (py3 - py4) - (py1 - py2) * (px3 - px4)
+
+        if denominator == 0:
             continue
 
-        if (x1 - x2) * (y3 - y4) == (y1 - y2) * (x3 - x4):
-            continue
-
-        t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / (
-            (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-        )
-        u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / (
-            (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-        )
+        t = ((px1 - px3) * (py3 - py4) - (py1 - py3) * (px3 - px4)) / denominator
+        u = -((px1 - px2) * (py1 - py3) - (py1 - py2) * (px1 - px3)) / denominator
 
         if t <= 0 or u <= 0:
             continue
 
-        def in_range(n):
+        def in_range(n: float) -> bool:
             return 200_000_000_000_000 <= n <= 400_000_000_000_000
 
         if all(
             map(
                 in_range,
                 [
-                    x1 + a.vel[0] * t,
-                    y1 + a.vel[1] * t,
-                    x3 + b.vel[0] * u,
-                    y3 + b.vel[1] * u,
+                    px1 + a.vel[0] * t,
+                    py1 + a.vel[1] * t,
+                    px3 + b.vel[0] * u,
+                    py3 + b.vel[1] * u,
                 ],
             ),
         ):
