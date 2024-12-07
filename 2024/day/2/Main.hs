@@ -8,7 +8,6 @@ safe1 levels = increasing || decreasing
 safe2 :: [Int] -> Bool
 safe2 levels = any (\i -> safe1 (take i levels ++ drop (i + 1) levels)) [0..length levels - 1]
 
-
 main = do
     input <- readFile "input"
     let reports = map (map read . words) (lines input)
