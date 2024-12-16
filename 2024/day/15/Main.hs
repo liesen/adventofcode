@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards, ViewPatterns #-}
+import Data.Maybe
 import Data.List
 import Data.Set qualified as Set
 import Data.Set (Set)
@@ -13,9 +14,9 @@ instance Show Warehouse where
         char pos
             | pos == robot = '@'
             | pos `elem` walls = '#'
-            | (pos, 'O') `elem` boxes = 'O'
             | (pos, '[') `elem` boxes = '['
             | (pos, ']') `elem` boxes = ']'
+            | (pos, 'O') `elem` boxes = 'O'
             | otherwise = '.'
 
 parse s = (Warehouse {..}, movements)
@@ -33,18 +34,40 @@ d 'v' = (1, 0)
 d '<' = (0, -1)
 d '>' = (0, 1)
 
-move (w@Warehouse{..}) (dr, dc)
-  | (r + dr, c + dc) `elem` walls = w { robot = (r, c)} -- fail "walls"
-  | ((r + dr, c +dc), 'O') `elem` boxes =
-    let w'@(Warehouse { boxes = boxes', robot = robot' }) = move (w { robot = (r+dr, c+dc)}) (dr, dc)
-    in if robot' == (r + dr, c + dc)
-      then w
-      else w' { boxes = Set.insert (robot', 'O') (Set.delete ((r + dr, c + dc), 'O') boxes'), robot = (r + dr, c + dc)}
-  | otherwise = w {robot = (r + dr, c + dc)}
+moveM walls ((robot@(r, c)), boxes) (dr, dc)
+  | robot' `elem` walls = fail "walls"
+  | Just 'O' <- box = do
+    (r, bs) <- moveM walls (robot', boxes) (dr, dc)
+    return (robot', Set.insert (r, 'O') (Set.delete (robot', 'O') bs))
+  | dr == 0, Just b <- box = do
+    (r, bs) <- moveM walls (robot', boxes) (dr, dc)
+    return (robot', Set.insert (r, b) (Set.delete (robot', b) bs))
+  | Just b1 <- box =
+    let (b2, dc') = if b1 == '[' then (']', 1) else ('[', -1)
+        robot'' = (r + dr, c + dc')
+    in do
+      (r1, bs1) <- moveM walls (robot', boxes) (dr, dc)
+      (r2, bs2) <- moveM walls (robot'', bs1) (dr, dc)
+      return (robot',
+        Set.insert (r2, b2) (Set.delete (robot'', b2) (Set.insert (r1, b1) (Set.delete (robot', b1) bs2)))
+       )
+  | otherwise = return (robot', boxes)
   where
-    (r, c) = robot
-    
-sumGps (Warehouse {..}) = sum [100 * r + c | ((r, c), 'O') <- Set.toList boxes ]
+    robot' = (r + dr, c + dc)
+    box
+      | (robot', 'O') `elem` boxes = Just 'O'
+      | (robot', '[') `elem` boxes = Just '['
+      | (robot', ']') `elem` boxes = Just ']'
+      | otherwise = Nothing
+
+moveM' walls s d =
+  case moveM walls s d of
+    Nothing -> s
+    Just s' -> s'
+
+sumGps (Warehouse {..}) = 
+    sum [100 * r + c | ((r, c), 'O') <- Set.toList boxes ]
+    + sum [100 * r + c | ((r, c), '[') <- Set.toList boxes ]
 
 scale (w@(Warehouse {..})) = w { numcols = numcols', walls = walls', boxes = boxes', robot = robot' }
   where
@@ -55,13 +78,14 @@ scale (w@(Warehouse {..})) = w { numcols = numcols', walls = walls', boxes = box
     
 
 main = do
-    input <- readFile "example3"
-    print input
-    print $ break (== "") $ lines input
-    let (w, ms) = parse input
-    -- print ms
-    -- let xs = scanl move w (map d ms)
-    -- mapM_ print xs
-    -- print $ sumGps $ foldl' move w (map d ms)
-    print w
-    print $ scale w
+    input <- readFile "input"
+    let (w1, ms) = parse input
+    
+    -- Part 1
+    let (r1, b1) = foldl (moveM' (walls w1)) (robot w1, boxes w1) (map d ms)
+    print $ sumGps $ w1 { robot = r1, boxes = b1 }
+    
+    -- Part 2
+    let w2 = scale w1
+        (r2, b2) = foldl (moveM' (walls w2)) (robot w2, boxes w2) (map d ms)
+    print $ sumGps $ w2 { robot = r2, boxes = b2 }
