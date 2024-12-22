@@ -1,7 +1,8 @@
-from collections.abc import Generator
-from itertools import pairwise
-from functools import cache
 from collections import deque
+from functools import cache
+from itertools import pairwise
+
+codes = [ln.rstrip() for ln in open(0)]
 
 # Numpad:
 #
@@ -27,7 +28,6 @@ numpad = {
     "9": dict(zip("<v", "86")),
     "A": dict(zip("^<", "30")),
 }
-print(numpad)
 
 # Directional keypad:
 #
@@ -43,7 +43,6 @@ keypad = {
     ">": dict(zip("^<", "Av")),
     "A": dict(zip("<v", "^>")),
 }
-print(keypad)
 
 
 @cache
@@ -98,122 +97,43 @@ def bfs_numpad(src: str, dst: str) -> set[str]:
     return paths
 
 
-@cache
-def dfs_numpad(src: str, dst: str) -> set[str]:
-    path: deque[str] = deque()
-    seen = set([src])
-
-    def go(src: str) -> Generator[str]:
-        if src == dst:
-            yield "".join(path)
-            return
-
-        for d, x in numpad[src].items():
-            if x in seen:
-                continue
-
-            seen.add(x)
-            path.append(d)
-            yield from go(x)
-            _ = path.pop()
-            seen.remove(x)
-
-    return set(go(src))
-
-
-if False:
-    print(numpad["0"])
-    # assert dfs_numpad("0", "2") == {"^"}
-    print(bfs_numpad("0", "2"))
-    print(bfs_numpad("1", "5"))
-
-
-    def punch_numpad(s, start="A"):
-        ways = {""}
-
-        for src, dst in pairwise(start + s):
-            ways = {ss + sss + "A" for ss in ways for sss in bfs_numpad(src, dst)}
-
-        return ways    
-
-
-    print(punch_numpad("029A", "A"))
-    assert punch_numpad("029A") == {"<A^A>^^AvvvA", "<A^A^>^AvvvA", "<A^A^^>AvvvA"}
-
-    def punch_keypad(s, start="A"):
-        ways = {""}
-
-        for src, dst in pairwise(start + s):
-            ways = {ss + sss + "A" for ss in ways for sss in bfs_keypad(src, dst)}
-
-        return ways    
-
-    for kp in {"<A^A>^^AvvvA", "<A^A^>^AvvvA", "<A^A^^>AvvvA"}:
-        print(kp, punch_keypad(kp, "A"), "v<<A>>^A<A>AvA<^AA>A<vAAA>^A" in punch_keypad(kp))
-        
-codes = """029A
-980A
-179A
-456A
-379A""".splitlines()
-
-codes = """129A
-540A
-789A
-596A
-582A""".splitlines()
-
-code = "029A"
-
 ans1 = 0
+num_robots = 2
 
 for code in codes:
     S = {""}
 
     for x0, x1 in pairwise("A" + code):
         S = {s + t + "A" for s in S for t in bfs_numpad(x0, x1)}
-    
+
     assert len({len(s) for s in S}) == 1
+    assert code != "029A" or (S == {"<A^A>^^AvvvA", "<A^A^>^AvvvA", "<A^A^^>AvvvA"})
 
-    # print(S)
-    # assert S == {"<A^A>^^AvvvA", "<A^A^>^AvvvA", "<A^A^^>AvvvA"}
+    for irobot in range(num_robots):
+        R: set[str] = set()
 
-    # Robot 1
-    R1: set[str] = set()
+        for s in S:
+            r1 = {""}
 
-    for s in S:
-        r1 = {""}
+            for x0, x1 in pairwise("A" + s):
+                r1 = {r + t + "A" for r in r1 for t in bfs_keypad(x0, x1)}
 
-        for x0, x1 in pairwise("A" + s):
-            r1 = {r + t + "A" for r in r1 for t in bfs_keypad(x0, x1)}
+            R |= r1
 
-        R1 |= r1
-        
-    n = min(len(r) for r in R1)
-    R1 = {r for r in R1 if len(r) == n}
+        n = min(len(r) for r in R)
+        S = {r for r in R if len(r) == n}
 
-    # print(R1)
-    # assert "v<<A>>^A<A>AvA<^AA>A<vAAA>^A" in R1
+        if code == "029A":
+            if irobot == 0:
+                assert "v<<A>>^A<A>AvA<^AA>A<vAAA>^A" in S
+            if irobot == 1:
+                assert (
+                    "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A"
+                    in S
+                )
 
-    # Robot 2
-    R2: set[str] = set()
-
-    for s in R1:
-        r2 = {""}
-
-        for x0, x1 in pairwise("A" + s):
-            r2 = {r + t + "A" for r in r2 for t in bfs_keypad(x0, x1)}
-
-        R2 |= r2
-        
-
-    n = min(len(r) for r in R2)
-    R2 = {r for r in R2 if len(r) == n}
-    # assert "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A" in R2
-    assert len({len(x) for x in R2}) == 1
+    n = min(len(r) for r in S)
     numpart = int("".join(d for d in code if d.isdigit()))
-
-    print(code, numpart, n, numpart * n)
     ans1 += numpart * n
-    
+
 print(ans1)
