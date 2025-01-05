@@ -1,10 +1,10 @@
 from collections import deque
 from functools import cache
-from itertools import pairwise
+from itertools import pairwise, product
 
 codes = [ln.rstrip() for ln in open(0)]
 
-# Numpad:
+# Numeric keypad:
 #
 # +---+---+---+
 # | 7 | 8 | 9 |
@@ -36,7 +36,7 @@ numpad = {
 # +---+---+---+
 # | < | v | > |
 # +---+---+---+
-keypad = {
+dirpad = {
     "^": dict(zip("v>", "vA")),
     "<": dict(zip(">", "v")),
     "v": dict(zip("^<>", "^<>")),
@@ -45,95 +45,87 @@ keypad = {
 }
 
 
-@cache
-def bfs_keypad(src: str, dst: str) -> set[str]:
+def bfs_pad(src: str, dst: str, pad: dict[str, dict[str, str]]) -> set[str]:
+    """Find all shortest sequences to go from src to dst on a keypad"""
+    assert len(src) == 1
+    assert len(dst) == 1
+
+    if src == dst:
+        return {"A"}
+
     shortest_sequence = None
     q = deque([(0, src, "")])
-    seen = set([(src, "")])
     paths: set[str] = set()
 
     while q:
         n, ch, path = q.popleft()
 
         if ch == dst:
-            if shortest_sequence is None:
-                shortest_sequence = n
-            paths.add(path)
+            shortest_sequence = n
+            paths.add(path + "A")
             continue
 
         for d in "^<v>":
-            for ch2 in keypad[ch].get(d, ""):
-                if (ch2, path + d) not in seen and (
-                    shortest_sequence is None or n + 1 < shortest_sequence
-                ):
+            for ch2 in pad[ch].get(d, ""):
+                if shortest_sequence is None or n + 1 < shortest_sequence:
                     q.append((n + 1, ch2, path + d))
 
     return paths
 
 
-@cache
 def bfs_numpad(src: str, dst: str) -> set[str]:
-    shortest_sequence = None
-    q = deque([(0, src, "")])
-    seen = set([(src, "")])
-    paths: set[str] = set()
-
-    while q:
-        n, ch, path = q.popleft()
-
-        if ch == dst:
-            if shortest_sequence is None:
-                shortest_sequence = n
-            paths.add(path)
-            continue
-
-        for d in "^<v>":
-            for ch2 in numpad[ch].get(d, ""):
-                if (ch2, path + d) not in seen and (
-                    shortest_sequence is None or n + 1 < shortest_sequence
-                ):
-                    q.append((n + 1, ch2, path + d))
-
-    return paths
+    return bfs_pad(src, dst, numpad)
 
 
-ans1 = 0
-num_robots = 2
+def bfs_dirpad(src: str, dst: str) -> set[str]:
+    return bfs_pad(src, dst, dirpad)
 
-for code in codes:
-    S = {""}
 
-    for x0, x1 in pairwise("A" + code):
-        S = {s + t + "A" for s in S for t in bfs_numpad(x0, x1)}
+@cache
+def count_dirpad_presses(robot_index: int, src: str, dst: str) -> int:
+    if robot_index == 1:
+        # Last robot before the numeric keypad! Return the (fewest)
+        # number of dirpad presses.
+        return len(next(iter(bfs_dirpad(src, dst))))
 
-    assert len({len(s) for s in S}) == 1
-    assert code != "029A" or (S == {"<A^A>^^AvvvA", "<A^A^>^AvvvA", "<A^A^^>AvvvA"})
+    return min(
+        sum(
+            count_dirpad_presses(a, b, robot_index - 1)
+            for a, b in pairwise("A" + seq)
+        )
+        for seq in bfs_dirpad(src, dst)
+    )
 
-    for irobot in range(num_robots):
-        R: set[str] = set()
 
-        for s in S:
-            r1 = {""}
+def numpad_seq(seq: str) -> list[str]:
+    """Find all shortest sequences for a given code/sequence on a numeric keypad"""
+    paths = [
+        "".join(subpath)
+        for subpath in product(*[bfs_numpad(src, dst) for src, dst in pairwise(seq)])
+    ]
+    min_len = min(len(path) for path in paths)
+    return [path for path in paths if len(path) == min_len]
 
-            for x0, x1 in pairwise("A" + s):
-                r1 = {r + t + "A" for r in r1 for t in bfs_keypad(x0, x1)}
 
-            R |= r1
+assert set(numpad_seq("A029A")) == {"<A^A>^^AvvvA", "<A^A^>^AvvvA", "<A^A^^>AvvvA"}
 
-        n = min(len(r) for r in R)
-        S = {r for r in R if len(r) == n}
 
-        if code == "029A":
-            if irobot == 0:
-                assert "v<<A>>^A<A>AvA<^AA>A<vAAA>^A" in S
-            if irobot == 1:
-                assert (
-                    "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A"
-                    in S
+# Part 1 & 2
+def get_numeric_part_of_code(code: str) -> int:
+    return int(code.rstrip("A"))
+
+
+for part, num_chained_dirpads in [(1, 2), (2, 25)]:
+    print(
+        sum(
+            get_numeric_part_of_code(code)
+            * min(
+                sum(
+                    count_dirpad_presses(num_chained_dirpads, src, dst)
+                    for src, dst in pairwise("A" + dirpad_input)
                 )
-
-    n = min(len(r) for r in S)
-    numpart = int("".join(d for d in code if d.isdigit()))
-    ans1 += numpart * n
-
-print(ans1)
+                for dirpad_input in numpad_seq("A" + code)
+            )
+            for code in codes
+        )
+    )
