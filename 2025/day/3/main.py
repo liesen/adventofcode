@@ -1,7 +1,7 @@
 from functools import cache
 
 
-def find(s: list[int], num_digits: int) -> list[int]:
+def joltage(s: list[int], num_digits: int) -> list[int]:
     @cache
     def go(n: int, i: int) -> list[int]:
         # Must use the rest of the digits
@@ -23,8 +23,8 @@ ans2 = 0
 with open(0) as f:
     for ln in f:
         n = [int(x) for x in ln.rstrip()]
-        ans1 += int("".join(str(x) for x in find(n, 2)))
-        ans2 += int("".join(str(x) for x in find(n, 12)))
+        ans1 += int("".join(str(x) for x in joltage(n, 2)))
+        ans2 += int("".join(str(x) for x in joltage(n, 12)))
 
 print(ans1)
 print(ans2)
