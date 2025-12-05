@@ -25,12 +25,17 @@ parse :: String -> ([Range], [Int])
 parse = partitionEithers . go . lines
   where
     go [] = []
+    -- Separator -> skip
     go ("" : rest) = go rest
+    -- Range
     go ((break (== '-') -> (read -> start, '-' : (read -> end))) : rest) = Left (start, end) : go rest
+    -- Incredient ID
     go ((read -> ingredientId) : rest) = Right ingredientId : go rest
 
+fresh :: [Range] -> Int -> Bool
 fresh ranges i = any (\(start, end) -> i >= start && i <= end) ranges
 
+count :: [Range] -> Int
 count [] = 0
 count [(x0, x1)] = x1 - x0 + 1
 count ((x0, x1) : (y0, y1) : zs)
