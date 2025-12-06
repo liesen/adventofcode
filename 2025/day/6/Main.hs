@@ -25,7 +25,7 @@ main = do
   -- Convert input into columns of strings (don't parse numbers yet)
   let lines' = lines input
       opline = last lines'
-      -- Column start indices
+      -- Find start index of each column based on the location of operators
       (ixs', ops) = unzip [(c, op ch) | (c, ch) <- zip [0 ..] opline, ch `elem` "+*"]
       ixs = ixs' ++ [length opline + 1] -- Don't forget the last column
       -- Chop each number row into columns
