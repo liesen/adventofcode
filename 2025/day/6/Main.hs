@@ -19,11 +19,14 @@ splitLine xs ln = zipWith split xs (drop 1 xs)
 
 main = do
   input <- getContents
+
+  -- Convert input into columns of strings (don't parse numbers yet)
   let lines' = lines input
       opline = last lines'
       -- Column start indices
       (ixs', ops) = unzip [(c, op ch) | (c, ch) <- zip [0 ..] opline, ch `elem` "+*"]
-      ixs = ixs' ++ [length opline + 1]
+      ixs = ixs' ++ [length opline + 1] -- Don't forget the last column
+      -- Chop each number row into columns
       rows = map (splitLine ixs) (take (length lines' - 1) lines')
       cols = transpose rows
 
