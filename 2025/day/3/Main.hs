@@ -1,13 +1,10 @@
 {-# LANGUAGE MultilineStrings #-}
 
 import Control.Monad
+import Data.Array
 import Data.Char (digitToInt, intToDigit)
-import Data.Function (on)
-import Data.List (maximum, maximumBy)
-import Data.Map (Map)
-import Data.Map qualified as Map
 import Data.Maybe
-import Data.Ord (compare)
+import Data.Semigroup (Max (..))
 
 input =
   """
@@ -17,61 +14,38 @@ input =
   818181911112111
   """
 
--- Left-biased version of https://hackage.haskell.org/package/ghc-internal-9.1201.0/docs/src/GHC.Internal.Data.Foldable.html#maximumBy
-maximumBy' :: (Foldable t) => (a -> a -> Ordering) -> t a -> a
-maximumBy' cmp =
-  fromMaybe (errorWithoutStackTrace "maximumBy: empty structure")
-    . foldl' max' Nothing
+joltage :: Int -> Array Int Int -> Maybe Int
+joltage n bank = getMax <$> (memoTable ! (n, 0))
   where
-    max' mx y =
-      Just $! case mx of
-        Nothing -> y
-        Just x -> case cmp x y of
-          LT -> y
-          _ -> x -- GT, EQ
+    (_, maxIndex) = bounds bank
+    bankSize = maxIndex + 1
+    bnds = ((0, 0), (n, bankSize))
 
-joltage2 :: [Int] -> Int
-joltage2 bank =
-  let (i, x) = maximumBy' (compare `on` snd) (zip [0 ..] bank)
-   in case splitAt (i + 1) bank of
-        -- The largest digit is the last
-        (xs, []) -> maximum (take i bank) * 10 + x
-        (xs, ys) -> x * 10 + maximum ys
+    memoTable :: Array (Int, Int) (Maybe (Max Int))
+    memoTable = array bnds [(k, go k) | k <- range bnds]
 
-joltage :: Int -> [Int] -> [Int]
-joltage n bank = go n (length bank) bank
-  where
-    go 1 m xs = [maximum xs]
-    go n m (x : xs)
-      | m == n = x : xs
-      | otherwise = max (x : go (n - 1) (m - 1) xs) (go n (m - 1) xs)
-
-memoJoltage :: Int -> [Int] -> [Int]
-memoJoltage n bank = fst (go mempty n (length bank) bank)
-  where
-    go memo n m (x : xs) =
-      case Map.lookup (n, m) memo of
-        Just ans -> (ans, memo)
-        Nothing ->
-          if n == m
-            -- Must use rest of the digits
-            then (x : xs, Map.insert (n, m) (x : xs) memo)
-            else case n of
-              1 ->
-                -- Must use the largest of the digits
-                let ans = [maximum (x : xs)]
-                 in (ans, Map.insert (n, m) ans memo)
-              _ ->
-                let (xs', memo') = go memo (n - 1) (m - 1) xs
-                    (xs'', memo'') = go memo' n (m - 1) xs
-                    ans = max (x : xs') xs''
-                 in (ans, Map.insert (n, m) ans memo'')
+    go :: (Int, Int) -> Maybe (Max Int)
+    go (k, i)
+      -- Done selecting, the resulting number is 0. Success is Just (Max 0)
+      | k == 0 = Just (Max 0)
+      -- Insufficient digits remaining
+      | i >= bankSize || (bankSize - i) < k = Nothing
+      -- Recurse
+      | otherwise =
+          let concat digit (Max val) = Max (digit * (10 ^ (k - 1)) + val)
+              -- Take the current digit
+              take = concat (bank ! i) <$> memoTable ! (k - 1, i + 1)
+              -- Skip the current digit
+              skip = memoTable ! (k, i + 1)
+           in take <> skip
 
 main = do
   input <- getContents
+  let parseBank s = listArray (0, length s - 1) (map digitToInt s)
+      banks = map parseBank (lines input)
 
   -- Part 1
-  print $ sum $ map (joltage2 . map digitToInt) $ lines input
+  print $ sum $ map (fromJust . joltage 2) banks
 
   -- Part 2
-  print $ sum $ map (read . map intToDigit . memoJoltage 12 . map digitToInt) $ lines input
+  print $ sum $ map (fromJust . joltage 12) banks
