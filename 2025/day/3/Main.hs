@@ -1,6 +1,5 @@
 {-# LANGUAGE MultilineStrings #-}
 
-import Control.Monad
 import Data.Array
 import Data.Char (digitToInt, intToDigit)
 import Data.Maybe
@@ -14,35 +13,31 @@ input =
   818181911112111
   """
 
-joltage :: Int -> Array Int Int -> Maybe Int
+joltage :: Int -> Array Int Int -> Maybe Integer
 joltage n bank = getMax <$> (memoTable ! (n, 0))
   where
     (_, maxIndex) = bounds bank
     bankSize = maxIndex + 1
     bnds = ((0, 0), (n, bankSize))
 
-    memoTable :: Array (Int, Int) (Maybe (Max Int))
-    memoTable = array bnds [(k, go k) | k <- range bnds]
+    memoTable :: Array (Int, Int) (Maybe (Max Integer))
+    memoTable = array bnds [(ki, subproblem ki) | ki <- range bnds]
 
-    go :: (Int, Int) -> Maybe (Max Int)
-    go (k, i)
-      -- Done selecting, the resulting number is 0. Success is Just (Max 0)
-      | k == 0 = Just (Max 0)
-      -- Insufficient digits remaining
-      | i >= bankSize || (bankSize - i) < k = Nothing
-      -- Recurse
+    subproblem :: (Int, Int) -> Maybe (Max Integer)
+    subproblem (k, i) -- k digits left to pick, starting at index i
+      | k == 0 = Just (Max 0) -- All digits picked
+      | i >= bankSize || (bankSize - i) < k = Nothing -- No digits left to pick from
       | otherwise =
-          let concat digit (Max val) = Max (digit * (10 ^ (k - 1)) + val)
-              -- Take the current digit
-              take = concat (bank ! i) <$> memoTable ! (k - 1, i + 1)
-              -- Skip the current digit
+          let currentDigit = fromIntegral (bank ! i)
+              prepend digit (Max val) = Max (digit * (10 ^ (k - 1)) + val)
+              pick = prepend currentDigit <$> memoTable ! (k - 1, i + 1)
               skip = memoTable ! (k, i + 1)
-           in take <> skip
+           in pick <> skip
 
 main = do
   input <- getContents
-  let parseBank s = listArray (0, length s - 1) (map digitToInt s)
-      banks = map parseBank (lines input)
+  let parse s = listArray (0, length s - 1) (map digitToInt s)
+      banks = map parse (lines input)
 
   -- Part 1
   print $ sum $ map (fromJust . joltage 2) banks
