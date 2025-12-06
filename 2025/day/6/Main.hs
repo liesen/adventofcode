@@ -17,6 +17,8 @@ splitLine xs ln = zipWith split xs (drop 1 xs)
   where
     split i j = take (j - i - 1) (drop i ln)
 
+parseNumber = read . filter (/= ' ')
+
 main = do
   input <- getContents
 
@@ -31,9 +33,9 @@ main = do
       cols = transpose rows
 
   -- Part 1
-  let numbers = map (map (read . filter (/= ' '))) cols
+  let numbers = map (map parseNumber) cols
   print $ sum $ zipWith foldl1 ops numbers
 
   -- Part 2
-  let numbers = map (map (read . filter (/= ' ')) . transpose) cols
+  let numbers = map (map parseNumber . transpose) cols
   print $ sum $ zipWith foldl1 ops numbers
