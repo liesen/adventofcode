@@ -99,10 +99,8 @@ place shapes (Constraint (rmax, cmax) ((i, n) : constraints)) occupied = or $ do
   Shape i (rmax', cmax') ps <- transformations shape
   -- Check if we can translate and place shape' at any open location of
   -- No need to place it in the void, place it next to a current shape or at (0, 0)
-  (r, c) <-
-    if Set.null occupied
-      then [(0, 0)]
-      else concatMap (\(r, c) -> [(r, c + 1), (r + 1, c), (r + 1, c + 1)]) occupied
+  (r, c) <- (0, 0) : concatMap (\(r, c) -> [(r, c + 1), (r + 1, c), (r + 1, c + 1)]) occupied
+  guard $ (r, c) `Set.notMember` occupied
   let fits = r + rmax' <= rmax && c + cmax' <= cmax
   guard fits
   let ps' = Set.map (\(r', c') -> (r + r', c + c')) ps

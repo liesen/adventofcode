@@ -17,11 +17,11 @@ input =
   @.@.@@@.@.
   """
 
-neighbors (r, c) = [(r + dr, c + dc) | dr <- [-1 .. 1], dc <- [-1 .. 1], not (dr == 0 && dc == 0)]
+neighbors (r, c) = Set.fromList [(r + dr, c + dc) | dr <- [-1 .. 1], dc <- [-1 .. 1], not (dr == 0 && dc == 0)]
 
 accessible rolls = Set.filter p rolls
   where
-    p v = length (filter (`elem` rolls) (neighbors v)) < 4
+    p v = Set.size (rolls `Set.intersection` neighbors v) < 4
 
 main = do
   input <- getContents
